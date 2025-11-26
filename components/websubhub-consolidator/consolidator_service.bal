@@ -46,7 +46,8 @@ isolated function consolidateSystemState() returns error? {
             string lastPersistedData = check string:fromBytes(message.payload);
             error? result = processPersistedData(lastPersistedData);
             if result is error {
-                log:printError("Error occurred while processing received event ", 'error = result);
+                common:logFatalError("Error occurred while processing received event ", 'error = result);
+                return result;
             }
         }
     } on fail var e {

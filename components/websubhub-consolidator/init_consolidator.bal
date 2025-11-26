@@ -30,7 +30,7 @@ public function main() returns error? {
     // Initialize consolidator-service state
     error? stateSyncResult = syncSystemState();
     if stateSyncResult is error {
-        common:logError("Error while syncing system state during startup", stateSyncResult, "FATAL");
+        common:logFatalError("Error while syncing system state during startup", stateSyncResult);
         return;
     }
 
@@ -69,10 +69,10 @@ isolated function syncSystemState() returns error? {
         }
         return websubEventsSnapshotConsumer->close();
     } on fail error kafkaError {
-        common:logError("Error occurred while syncing system-state", kafkaError, "FATAL");
+        common:logFatalError("Error occurred while syncing system-state", kafkaError);
         error? result = check websubEventsSnapshotConsumer->close();
         if result is error {
-            common:logError("Error occurred while gracefully closing the message store consumer", result);
+            common:logFatalError("Error occurred while gracefully closing the message store consumer", result);
         }
         return kafkaError;
     }
