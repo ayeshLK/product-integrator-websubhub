@@ -16,12 +16,15 @@
 
 import websubhub.consolidator.common;
 import websubhub.consolidator.config;
+import websubhub.consolidator.connections as conn;
 import websubhub.consolidator.persistence as persist;
 
 import ballerina/http;
 import ballerina/lang.runtime;
+import ballerina/lang.value;
 import ballerina/log;
-import ballerinax/kafka;
+
+import wso2/messaging.store;
 
 public function main() returns error? {
     // Initialize consolidator-service state
@@ -49,30 +52,28 @@ public function main() returns error? {
 }
 
 isolated function syncSystemState() returns error? {
-    kafka:ConsumerConfiguration websubEventsSnapshotConfig = {
-        groupId: config:state.snapshot.consumerGroup,
-        offsetReset: "earliest",
-        topics: [config:state.snapshot.topic],
-        secureSocket: config:kafka.connection.secureSocket,
-        securityProtocol: config:kafka.connection.securityProtocol,
-        maxPollRecords: config:kafka.consumer.maxPollRecords
-    };
-    kafka:Consumer websubEventsSnapshotConsumer = check new (config:kafka.connection.bootstrapServers, websubEventsSnapshotConfig);
+    store:Consumer websubEventsSnapshotConsumer = check conn:createConsumer(config:state.snapshot.topic, config:state.snapshot.consumerGroup);
     do {
-        common:SystemStateSnapshot[] events = check websubEventsSnapshotConsumer->pollPayload(config:kafka.consumer.pollingInterval);
+        store:Message? message = check websubEventsSnapshotConsumer->receive();
+        if message is () {
+            return websubEventsSnapshotConsumer->close();
+        }
+
+        string persistedMsg = check string:fromBytes(message.payload);
+        common:SystemStateSnapshot[] events = check value:fromJsonString(persistedMsg).ensureType();
         if events.length() > 0 {
             common:SystemStateSnapshot lastStateSnapshot = events.pop();
             refreshTopicCache(lastStateSnapshot.topics);
             refreshSubscribersCache(lastStateSnapshot.subscriptions);
             check persist:persistWebsubEventsSnapshot(lastStateSnapshot);
         }
+        return websubEventsSnapshotConsumer->close();
     } on fail error kafkaError {
         common:logError("Error occurred while syncing system-state", kafkaError, "FATAL");
-        error? result = check websubEventsSnapshotConsumer->close(config:kafka.consumer.gracefulClosePeriod);
+        error? result = check websubEventsSnapshotConsumer->close();
         if result is error {
-            common:logError("Error occurred while gracefully closing kafka:Consumer", result);
+            common:logError("Error occurred while gracefully closing the message store consumer", result);
         }
         return kafkaError;
     }
-    check websubEventsSnapshotConsumer->close();
 }
