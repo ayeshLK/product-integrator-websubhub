@@ -31,22 +31,20 @@ public final store:Consumer websubEventsConsumer = check initWebSubEventsConsume
 function initWebSubEventsConsumer() returns store:Consumer|error {
     return store:createKafkaConsumer(
             config:store.kafka,
-            config:state.events.consumerGroup,
+            config:state.events.consumerId,
             config:state.events.topic,
             offsetReset = "earliest"
     );
 }
 
-# Initialize a `store:Consumer` for a WebSub subscriber.
+# Initializes the WebSub event snapshot consumer.
 #
-# + topic - The message store topic
-# + consumerId - The consumer Id for the message store consumer
 # + return - A `store:Consumer` for the message store, or else return an `error` if the operation fails
-public isolated function createConsumer(string topic, string consumerId) returns store:Consumer|error {
+public isolated function initWebSubEventSnapshotConsumer() returns store:Consumer|error {
     return store:createKafkaConsumer(
             config:store.kafka,
-            consumerId,
-            topic,
+            config:state.snapshot.consumerId,
+            config:state.snapshot.topic,
             offsetReset = "earliest"
     );
 }

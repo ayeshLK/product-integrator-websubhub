@@ -52,7 +52,7 @@ public function main() returns error? {
 }
 
 isolated function syncSystemState() returns error? {
-    store:Consumer websubEventsSnapshotConsumer = check conn:createConsumer(config:state.snapshot.topic, config:state.snapshot.consumerGroup);
+    store:Consumer websubEventsSnapshotConsumer = check conn:initWebSubEventSnapshotConsumer();
     do {
         store:Message? message = check websubEventsSnapshotConsumer->receive();
         if message is () {

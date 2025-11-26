@@ -35,16 +35,16 @@ public type ServerConfig record {|
 
 # Defines configurations for publishing and maintaining the server's state.
 public type ServerStateConfig record {|
-    # Configurations for the Kafka topic where the state snapshot is published
-    KafkaTopicConfig snapshot;
-    # Configurations for the Kafka topic where state update events are published
-    KafkaTopicConfig events;
+    # Configurations for the message store topic where the state snapshot is published
+    MessageStoreTopic snapshot;
+    # Configurations for the message store topic where state update events are published
+    MessageStoreTopic events;
 |};
 
-# Defines the configurations for a Kafka topic.
-public type KafkaTopicConfig record {|
-    # The name of the Kafka topic
+# Defines the configurations for a message store topic.
+public type MessageStoreTopic record {|
+    # The name of the message store topic
     string topic;
-    # The consumer group ID to be used when consuming from the topic
-    string consumerGroup;
+    # The consumer group Id to be used when consuming from the topic
+    string consumerId;
 |};
