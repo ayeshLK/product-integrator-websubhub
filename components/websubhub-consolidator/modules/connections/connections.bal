@@ -22,7 +22,7 @@ import wso2/messaging.store;
 public final store:Producer statePersistProducer = check initStatePersistProducer();
 
 function initStatePersistProducer() returns store:Producer|error {
-    return store:createKafkaProducer("consolidated-state-persist", config:store.kafka);
+    return store:createKafkaProducer(config:store.kafka, "consolidated-state-persist");
 }
 
 // Consumer which reads the persisted topic-registration/topic-deregistration/subscription/unsubscription events
