@@ -25,12 +25,13 @@ import wso2/messagestore as store;
 final store:Producer statePersistProducer = check initStatePersistProducer();
 
 function initStatePersistProducer() returns store:Producer|error {
+    string clientId = string `state-persist-${config:serverId}`;
     var {kafka, solace} = config:store;
     if solace is store:SolaceConfig {
-        return store:createSolaceProducer(solace, "state-persist");
+        return store:createSolaceProducer(solace, clientId);
     }
     if kafka is store:KafkaConfig {
-        return store:createKafkaProducer(kafka, "state-persist");
+        return store:createKafkaProducer(kafka, clientId);
     }
     return error("Error occurred while reading the message store configurations when creating the store producer");
 }
