@@ -44,7 +44,7 @@ public type ServerConfig record {|
     # The port on which the WebSubHub service will listen
     int port;
     # A unique identifier for this WebSubHub server instance
-    string id;
+    string id = "websubhub-1";
     # Authentication configurations for securing the hub's endpoints
     JwtValidatorConfig auth?;
     # SSL/TLS configurations for the service endpoint
