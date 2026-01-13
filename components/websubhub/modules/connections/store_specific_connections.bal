@@ -43,6 +43,14 @@ isolated function createSolaceConsumerForSubscriber(store:SolaceConfig config, w
     return store:createSolaceConsumer(config, defaultQueueName, false, subscription);
 }
 
+isolated function createJmsConsumerForSubscriber(store:JmsConfig config, websubhub:VerifiedSubscription subscription)
+    returns store:Consumer|error {
+
+    string timestamp = check value:ensureType(subscription[common:SUBSCRIPTION_TIMESTAMP]);
+    string defaultSubscriberName = constructConsumerName(subscription.hubTopic, subscription.hubCallback, timestamp);    
+    return store:createJmsConsumer(config, subscription.hubTopic, defaultSubscriberName, subscription);
+}
+
 isolated function constructConsumerName(string topic, string hubCallback, string timestamp) returns string {
     string subscriberId = string `${topic}___${hubCallback}___${timestamp}`;
     int constructedId = 0;

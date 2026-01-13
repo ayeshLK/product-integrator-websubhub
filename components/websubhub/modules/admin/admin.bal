@@ -36,9 +36,12 @@ public isolated function createWebSubEventsSubscription(string topic, string con
 }
 
 isolated function createAdministrator() returns store:Administrator|error {
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceAdministrator(solace);
+    }
+    if jms is store:JmsConfig {
+        return store:createJmsAdministrator();
     }
     return new store:Administrator();
 }

@@ -26,9 +26,12 @@ final store:Producer statePersistProducer = check initStatePersistProducer();
 
 function initStatePersistProducer() returns store:Producer|error {
     string clientId = string `state-persist-${config:serverId}`;
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceProducer(solace, clientId);
+    }
+    if jms is store:JmsConfig {
+        return store:createJmsProducer(jms, clientId);
     }
     if kafka is store:KafkaConfig {
         return store:createKafkaProducer(kafka, clientId);
@@ -42,13 +45,20 @@ public final store:Consumer websubEventsConsumer = check initWebSubEventsConsume
 function initWebSubEventsConsumer() returns store:Consumer|error {
     string websubEventsConsumerId = string `${config:state.events.consumerIdPrefix}-${config:serverId}`;
     check admin:createWebSubEventsSubscription(config:state.events.topic, websubEventsConsumerId);
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceConsumer(
                 solace,
                 websubEventsConsumerId,
                 false
         );
+    }
+    if jms is store:JmsConfig {
+        return store:createJmsConsumer(
+                jms,
+                config:state.events.topic,
+                websubEventsConsumerId
+        );        
     }
     if kafka is store:KafkaConfig {
         return store:createKafkaConsumer(
@@ -66,9 +76,12 @@ function initWebSubEventsConsumer() returns store:Consumer|error {
 # + subscription - The WebSub subscriber details
 # + return - A `store:Consumer` for the message store, or else return an `error` if the operation fails
 public isolated function createConsumer(websubhub:VerifiedSubscription subscription) returns store:Consumer|error {
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return createSolaceConsumerForSubscriber(solace, subscription);
+    }
+    if jms is store:JmsConfig {
+        return createJmsConsumerForSubscriber(jms, subscription);        
     }
     if kafka is store:KafkaConfig {
         return createKafkaConsumerForSubscriber(kafka, subscription);
