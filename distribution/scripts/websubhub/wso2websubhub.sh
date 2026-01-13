@@ -71,6 +71,17 @@ if [ -z "$JAR_FILE" ]; then
     exit 1
 fi
 
+# Build classpath
+EXTENSIONS_DIR="$BASE_DIR/wso2/extensions"
+if [ -d "$EXTENSIONS_DIR" ] && [ "$(ls -A $EXTENSIONS_DIR/*.jar 2>/dev/null)" ]; then
+    CLASSPATH="$JAR_FILE:$EXTENSIONS_DIR/*"
+else
+    CLASSPATH="$JAR_FILE"
+fi
+
+# Main class
+MAIN_CLASS="@MAIN_CLASS@"
+
 # Function to start the server
 startServer() {
     if [ -e "$PID_FILE" ]; then
@@ -81,9 +92,9 @@ startServer() {
     fi
     
     echo "Starting WSO2 WebSubHub..."
-    
+
     # Start the server in background with nohup
-    nohup env BAL_CONFIG_FILES="$BAL_CONFIG_FILES" "$JAVA_CMD" $JAVA_OPTS -jar "$JAR_FILE" > /dev/null 2>&1 &
+    nohup env BAL_CONFIG_FILES="$BAL_CONFIG_FILES" "$JAVA_CMD" $JAVA_OPTS -cp "$CLASSPATH" "$MAIN_CLASS" > /dev/null 2>&1 &
     PID=$!
     echo $PID > "$PID_FILE"
     
@@ -165,9 +176,10 @@ else
         echo "Starting WSO2 WebSubHub in foreground..."
         echo "Using JAVA_CMD: $JAVA_CMD"
         echo "Using JAVA_OPTS: $JAVA_OPTS"
-        echo "JAR: $JAR_FILE"
+        echo "Classpath: $CLASSPATH"
+        echo "Main Class: $MAIN_CLASS"
         echo "Config: $BAL_CONFIG_FILES"
-        exec env BAL_CONFIG_FILES="$BAL_CONFIG_FILES" "$JAVA_CMD" $JAVA_OPTS -jar "$JAR_FILE"
+        exec env BAL_CONFIG_FILES="$BAL_CONFIG_FILES" "$JAVA_CMD" $JAVA_OPTS -cp "$CLASSPATH" "$MAIN_CLASS"
     else
         echo "Usage: $0 {start|stop|restart|status}"
         exit 1

@@ -22,11 +22,65 @@ plugins {
 }
 
 def componentsDir = project(':websubhub-workspace').projectDir
+def extDir = file('extensions')
+
+// Function to parse Ballerina.toml and extract main class
+def extractMainClass(String ballerinatomlPath) {
+    def tomlFile = file(ballerinatomlPath)
+    if (!tomlFile.exists()) {
+        throw new GradleException("Ballerina.toml not found at: ${ballerinatomlPath}")
+    }
+
+    def org = null
+    def name = null
+    def version = null
+
+    tomlFile.eachLine { line ->
+        if (line =~ /^\s*org\s*=/) {
+            org = line.replaceAll(/.*=\s*"([^"]+)".*/, '$1').trim()
+        } else if (line =~ /^\s*name\s*=/) {
+            name = line.replaceAll(/.*=\s*"([^"]+)".*/, '$1').trim()
+        } else if (line =~ /^\s*version\s*=/) {
+            version = line.replaceAll(/.*=\s*"([^"]+)".*/, '$1').trim()
+        }
+    }
+
+    if (!org || !name || !version) {
+        throw new GradleException("Failed to parse org, name, or version from ${ballerinatomlPath}")
+    }
+
+    // Extract major version
+    def majorVersion = version.split('\\.')[0]
+
+    // Construct main class: <org>.<name>.<major-version>.$__init
+    return "${org}.${name}.${majorVersion}.\$__init"
+}
+
+// Task to process websubhub scripts
+task processHubScripts(type: Copy) {
+    from('scripts/websubhub')
+    into("${buildDir}/processed-scripts/websubhub")
+    def mainClass = extractMainClass("${componentsDir}/websubhub/Ballerina.toml")
+    filter { line ->
+        line.replace('@MAIN_CLASS@', mainClass)
+    }
+}
+
+// Task to process consolidator scripts
+task processConsolidatorScripts(type: Copy) {
+    from('scripts/websubhub-consolidator')
+    into("${buildDir}/processed-scripts/websubhub-consolidator")
+    def mainClass = extractMainClass("${componentsDir}/websubhub-consolidator/Ballerina.toml")
+    filter { line ->
+        line.replace('@MAIN_CLASS@', mainClass)
+    }
+}
+
 distributions {
     hub {
         distributionBaseName = 'wso2websubhub'
-        def scriptsDir = file('scripts/websubhub')
         def confDir = file('conf/websubhub')
+
         contents {
             from("${componentsDir}/websubhub/target/bin") {
                 include "*.jar"
@@ -35,8 +89,8 @@ distributions {
                 }
                 into "lib"
             }
-            
-            from("${confDir}") {    
+
+            from("${confDir}") {
                 include "Config.toml"
                 into "conf"
             }
@@ -44,8 +98,8 @@ distributions {
             from("${componentsDir}/websubhub/resources") {
                 into "conf/resources"
             }
-            
-            from(scriptsDir) {
+
+            from("${buildDir}/processed-scripts/websubhub") {
                 include "*.sh", "*.bat"
                 into "bin"
                 fileMode = 0755
@@ -55,13 +109,17 @@ distributions {
                 include "LICENSE*"
                 into ""
             }
+
+            from (extDir) {
+                into "wso2/extensions"
+            }
         }
     }
 
     consolidator {
         distributionBaseName = 'wso2websubhub-consolidator'
-        def scriptsDir = file('scripts/websubhub-consolidator')
         def confDir = file('conf/websubhub-consolidator')
+
         contents {
             from("${componentsDir}/websubhub-consolidator/target/bin") {
                 include "*.jar"
@@ -70,7 +128,7 @@ distributions {
                 }
                 into "lib"
             }
-            
+
             from("${confDir}") {
                 include "Config.toml"
                 into "conf"
@@ -80,7 +138,7 @@ distributions {
                 into "conf/resources"
             }
 
-            from(scriptsDir) {
+            from("${buildDir}/processed-scripts/websubhub-consolidator") {
                 include "*.sh", "*.bat"
                 into "bin"
                 fileMode = 0755
@@ -89,6 +147,10 @@ distributions {
             from(rootProject.projectDir) {
                 include "LICENSE*"
                 into ""
+            }
+
+            from (extDir) {
+                into "wso2/extensions"
             }
         }
     }
@@ -139,10 +201,10 @@ publishing {
     }
 }
 
-hubDistZip.dependsOn(':websubhub-workspace:build')
+hubDistZip.dependsOn(':websubhub-workspace:build', processHubScripts)
 hubDistTar.enabled = false
 
-consolidatorDistZip.dependsOn(':websubhub-workspace:build')
+consolidatorDistZip.dependsOn(':websubhub-workspace:build', processConsolidatorScripts)
 consolidatorDistTar.enabled = false
 
 websubhubDistributionDistZip.dependsOn(hubDistZip)

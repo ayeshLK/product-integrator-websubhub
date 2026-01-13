@@ -64,6 +64,17 @@ if not defined JAR_FILE (
     exit /b 1
 )
 
+rem Build classpath
+set "EXTENSIONS_DIR=%BASE_DIR%\wso2\extensions"
+if exist "%EXTENSIONS_DIR%\*.jar" (
+    set "CLASSPATH=%JAR_FILE%;%EXTENSIONS_DIR%\*"
+) else (
+    set "CLASSPATH=%JAR_FILE%"
+)
+
+rem Main class
+set "MAIN_CLASS=@MAIN_CLASS@"
+
 rem Parse command line arguments
 if "%~1"=="start" goto startServer
 if "%~1"=="stop" goto stopServer
@@ -84,7 +95,7 @@ if exist "%PID_FILE%" (
 )
 
 echo Starting WSO2 WebSubHub...
-start /B "" "%JAVA_CMD%" %JAVA_OPTS% -jar "%JAR_FILE%"
+start /B "" "%JAVA_CMD%" %JAVA_OPTS% -cp "%CLASSPATH%" %MAIN_CLASS%
 
 rem Get the PID of the started process
 for /f "tokens=2" %%i in ('tasklist /FI "IMAGENAME eq java.exe" /FO CSV ^| find /V "PID" ^| find /V """PID"""') do (
@@ -157,9 +168,10 @@ goto end
 echo Starting WSO2 WebSubHub in foreground...
 echo Using JAVA_CMD: %JAVA_CMD%
 echo Using JAVA_OPTS: %JAVA_OPTS%
-echo JAR: %JAR_FILE%
+echo Classpath: %CLASSPATH%
+echo Main Class: %MAIN_CLASS%
 echo Config: %BAL_CONFIG_FILES%
-"%JAVA_CMD%" %JAVA_OPTS% -jar "%JAR_FILE%"
+"%JAVA_CMD%" %JAVA_OPTS% -cp "%CLASSPATH%" %MAIN_CLASS%
 goto end
 
 :usage
