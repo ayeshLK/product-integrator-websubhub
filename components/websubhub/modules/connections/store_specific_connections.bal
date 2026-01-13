@@ -47,7 +47,7 @@ isolated function createJmsConsumerForSubscriber(store:JmsConfig config, websubh
     returns store:Consumer|error {
 
     string timestamp = check value:ensureType(subscription[common:SUBSCRIPTION_TIMESTAMP]);
-    string defaultSubscriberName = constructConsumerName(subscription.hubTopic, subscription.hubCallback, timestamp);    
+    string defaultSubscriberName = constructConsumerName(subscription.hubTopic, subscription.hubCallback, timestamp);
     return store:createJmsConsumer(config, subscription.hubTopic, defaultSubscriberName, subscription);
 }
 

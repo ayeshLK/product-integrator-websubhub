@@ -14,11 +14,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import websubhub.consolidator.admin as _;
 import websubhub.consolidator.common;
 import websubhub.consolidator.config;
 import websubhub.consolidator.connections as conn;
 import websubhub.consolidator.persistence as persist;
-import websubhub.consolidator.admin as _;
 
 import ballerina/http;
 import ballerina/lang.runtime;

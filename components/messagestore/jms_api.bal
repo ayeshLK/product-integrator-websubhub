@@ -104,7 +104,6 @@ isolated function addConsumerSession(string subscriberName, jms:Session session)
     }
 }
 
-
 isolated client class JmsAdministrator {
     *Administrator;
 

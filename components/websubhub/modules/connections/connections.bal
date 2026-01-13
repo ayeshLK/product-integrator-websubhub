@@ -58,7 +58,7 @@ function initWebSubEventsConsumer() returns store:Consumer|error {
                 jms,
                 config:state.events.topic,
                 websubEventsConsumerId
-        );        
+        );
     }
     if kafka is store:KafkaConfig {
         return store:createKafkaConsumer(
@@ -81,7 +81,7 @@ public isolated function createConsumer(websubhub:VerifiedSubscription subscript
         return createSolaceConsumerForSubscriber(solace, subscription);
     }
     if jms is store:JmsConfig {
-        return createJmsConsumerForSubscriber(jms, subscription);        
+        return createJmsConsumerForSubscriber(jms, subscription);
     }
     if kafka is store:KafkaConfig {
         return createKafkaConsumerForSubscriber(kafka, subscription);

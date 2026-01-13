@@ -46,7 +46,7 @@ isolated function createStateEventsSubscription() returns error? {
         log:printWarn(string `Subscription for Topic [${topic}] and Subscriber [${consumerId}] exists`);
         return;
     }
-    return result;    
+    return result;
 }
 
 isolated function createAdministrator() returns store:Administrator|error {
