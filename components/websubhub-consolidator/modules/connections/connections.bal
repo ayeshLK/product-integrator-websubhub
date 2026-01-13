@@ -23,9 +23,12 @@ import wso2/messagestore as store;
 public final store:Producer statePersistProducer = check initStatePersistProducer();
 
 function initStatePersistProducer() returns store:Producer|error {
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceProducer(solace, "consolidated-state-persist");
+    }
+    if jms is store:JmsConfig {
+        return store:createJmsProducer(jms, "consolidated-state-persist");
     }
     if kafka is store:KafkaConfig {
         return store:createKafkaProducer(kafka, "consolidated-state-persist");
@@ -37,12 +40,19 @@ function initStatePersistProducer() returns store:Producer|error {
 public final store:Consumer websubEventsConsumer = check initWebSubEventsConsumer();
 
 function initWebSubEventsConsumer() returns store:Consumer|error {
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceConsumer(
                 solace,
                 config:state.events.consumerId,
                 false
+        );
+    }
+    if jms is store:JmsConfig {
+        return store:createJmsConsumer(
+                jms,
+                config:state.events.topic,
+                config:state.events.consumerId
         );
     }
     if kafka is store:KafkaConfig {
@@ -61,12 +71,19 @@ function initWebSubEventsConsumer() returns store:Consumer|error {
 #
 # + return - A `store:Consumer` for the message store, or else return an `error` if the operation fails
 public isolated function initWebSubEventSnapshotConsumer() returns store:Consumer|error {
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceConsumer(
                 solace,
                 config:state.snapshot.consumerId,
                 false
+        );
+    }
+    if jms is store:JmsConfig {
+        return store:createJmsConsumer(
+                jms,
+                config:state.snapshot.topic,
+                config:state.snapshot.consumerId
         );
     }
     if kafka is store:KafkaConfig {
