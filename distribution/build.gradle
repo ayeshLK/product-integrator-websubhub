@@ -86,7 +86,7 @@ def extractMainClass(String ballerinatomlPath) {
     def encodedName = encodeIdentifier(name)
     def encodedMajorVersion = encodeIdentifier(majorVersion)
 
-    return "${encodedOrg}.${encodedName}.${encodedMajorVersion}.\$_init"
+    return "${encodedOrg}.${encodedName}.${encodedMajorVersion}." + '\\$_init'
 }
 
 // Task to process websubhub scripts
