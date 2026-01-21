@@ -104,7 +104,7 @@ isolated client class SolaceConsumer {
         }
     }
 
-    isolated remote function close() returns error? {
+    isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
         return self.consumer->close();
     }
 }

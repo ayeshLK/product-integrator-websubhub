@@ -42,13 +42,12 @@ isolated client class JmsProducer {
     }
 }
 
-const string ORIGINAL_JMS_MSG = "originalMessage";
-
 isolated client class JmsConsumer {
     *Consumer;
 
     private final jms:MessageConsumer consumer;
     private final jms:Session session;
+    private final string subscriberName;
     private final int readTimeout;
 
     isolated function init(jms:Session session, JmsConsumerConfig config, string topic, string subscriberName) returns error? {
@@ -62,6 +61,7 @@ isolated client class JmsConsumer {
             },
             subscriberName
         });
+        self.subscriberName = subscriberName;
         self.readTimeout = <int>(config.receiveTimeout * 1000);
     }
 
@@ -73,7 +73,6 @@ isolated client class JmsConsumer {
         Message message = {
             payload: receivedMsg.content
         };
-        message[ORIGINAL_JMS_MSG] = receivedMsg;
         return message;
     }
 
@@ -85,50 +84,12 @@ isolated client class JmsConsumer {
         return self.session->'rollback();
     }
 
-    isolated remote function close() returns error? {
-        return self.consumer->close();
-    }
-}
-
-isolated map<jms:Session> consumerSessions = {};
-
-isolated function getConsumerSession(string subscriberName) returns jms:Session? {
-    lock {
-        return consumerSessions[subscriberName];
-    }
-}
-
-isolated function addConsumerSession(string subscriberName, jms:Session session) {
-    lock {
-        consumerSessions[subscriberName] = session;
-    }
-}
-
-isolated client class JmsAdministrator {
-    *Administrator;
-
-    isolated remote function createTopic(string topic, record {} meta = {}) returns TopicExists|error? {
-        return;
-    }
-
-    isolated remote function deleteTopic(string topic, record {} meta = {}) returns TopicNotFound|error? {
-        return;
-    }
-
-    isolated remote function createSubscription(string topic, string subscriberName, record {} meta = {}) returns SubscriptionExists|error? {
-        return;
-    }
-
-    isolated remote function deleteSubscription(string topic, string subscriberName, record {} meta = {}) returns SubscriptionNotFound|error? {
-        jms:Session? session = getConsumerSession(subscriberName);
-        if session is jms:Session {
-            return session->unsubscribe(subscriberName);
+    isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
+        check self.consumer->close();
+        if intent is PERMANENT {
+            check self.session->unsubscribe(self.subscriberName);
         }
-        return;
-    }
-
-    isolated remote function close() returns error? {
-        return;
+        return self.session->close();
     }
 }
 
@@ -169,13 +130,5 @@ public isolated function createJmsConsumer(JmsConfig config, string topic, strin
     };
     jms:Connection connection = check new (connectionConfig);
     jms:Session session = check connection->createSession(jms:SESSION_TRANSACTED);
-    addConsumerSession(subscriberName, session);
     return new JmsConsumer(session, config.consumer, topic, subscriberName);
-}
-
-# Initialize a administrator for JMS message store.
-#
-# + return - A `store:Administrator` for JMS message store, or else return an `error` if the operation fails
-public isolated function createJmsAdministrator() returns Administrator|error {
-    return new JmsAdministrator();
 }

@@ -40,9 +40,6 @@ isolated function createAdministrator() returns store:Administrator|error {
     if solace is store:SolaceConfig {
         return store:createSolaceAdministrator(solace);
     }
-    if jms is store:JmsConfig {
-        return store:createJmsAdministrator();
-    }
     return new store:Administrator();
 }
 
