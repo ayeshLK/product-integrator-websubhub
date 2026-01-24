@@ -324,7 +324,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "websubhub"
-version = "1.15.1"
+version = "1.15.2"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "http"},
