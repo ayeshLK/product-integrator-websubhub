@@ -174,7 +174,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
         string subscriberId = common:generateSubscriberId(message.hubTopic, message.hubCallback);
         websubhub:VerifiedSubscription? subscription = getSubscription(subscriberId);
         // if we have a stale subscription, remove the `status` flag from the subscription and persist it again
-        if subscription is websubhub:Subscription {
+        if subscription is websubhub:VerifiedSubscription {
             websubhub:VerifiedSubscription updatedSubscription = {
                 ...subscription
             };

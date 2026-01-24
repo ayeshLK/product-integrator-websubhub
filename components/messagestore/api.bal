@@ -22,6 +22,15 @@ public type Message record {
     map<string|string[]> metadata?;
 };
 
+# Represents the intent of closing a `Consumer`. This is used to indicate how the underlying broker-side resources
+# (such as subscriptions) should be handled when a consumer is closed.
+public enum ClosureIntent {
+    # Indicates a temporary shutdown where the consumer may reconnect and reuse the existing subscription
+    TEMPORARY,
+    # Indicates a permanent shutdown where the consumer will not be reused and any associated broker-side subscriptions should be removed
+    PERMANENT
+};
+
 # Represents a producer client that can publish messages to the message store.
 public isolated client class Producer {
 
@@ -70,8 +79,10 @@ public isolated client class Consumer {
 
     # Closes the underlying consumer and the associated broker connection.
     #
+    # + intent - A parameter indicates how broker-side resources, such as subscriptions, 
+    # should be handled when closing the consumer.
     # + return - An `error` if closing the consumer fails, otherwise `()`.
-    isolated remote function close() returns error? {
+    isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
         return error("Calling an abstract API");
     }
 }

@@ -22,11 +22,98 @@ plugins {
 }
 
 def componentsDir = project(':websubhub-workspace').projectDir
+def extDir = file('extensions')
+
+def getFormattedStringForJvmReservedSet(char c) {
+    switch (c) {
+        case '\\': return '0092'
+        case '.': return '0046'
+        case ':': return '0058'
+        case ';': return '0059'
+        case '[': return '0091'
+        case ']': return '0093'
+        case '/': return '0047'
+        case '<': return '0060'
+        case '>': return '0062'
+        default: return null
+    }
+}
+
+def encodeGeneratedName(String identifier) {
+    StringBuilder sb = new StringBuilder()
+    for (int i = 0; i < identifier.length(); i++) {
+        char c = identifier.charAt(i)
+        String formattedString = getFormattedStringForJvmReservedSet(c)
+        if (formattedString != null) {
+            sb.append('&').append(formattedString)
+        } else {
+            sb.append(c)
+        }
+    }
+    return sb.toString()
+}
+
+def encodeIdentifier(String identifierString) {
+    return encodeGeneratedName(identifierString)
+}
+
+def extractMainClass(String ballerinatomlPath) {
+    def tomlFile = file(ballerinatomlPath)
+    if (!tomlFile.exists()) {
+        throw new GradleException("Ballerina.toml not found at: ${ballerinatomlPath}")
+    }
+
+    def org = null
+    def name = null
+    def version = null
+
+    tomlFile.eachLine { line ->
+        if (line =~ /^\s*org\s*=/) {
+            org = line.replaceAll(/.*=\s*"([^"]+)".*/, '$1').trim()
+        } else if (line =~ /^\s*name\s*=/) {
+            name = line.replaceAll(/.*=\s*"([^"]+)".*/, '$1').trim()
+        } else if (line =~ /^\s*version\s*=/) {
+            version = line.replaceAll(/.*=\s*"([^"]+)".*/, '$1').trim()
+        }
+    }
+
+    if (!org || !name || !version) {
+        throw new GradleException("Failed to parse org, name, or version from ${ballerinatomlPath}")
+    }
+
+    def majorVersion = version.split('\\.')[0]
+    def encodedOrg = encodeIdentifier(org)
+    def encodedName = encodeIdentifier(name)
+    def encodedMajorVersion = encodeIdentifier(majorVersion)
+
+    return "${encodedOrg}.${encodedName}.${encodedMajorVersion}." + '\\$_init'
+}
+
+// Task to process websubhub scripts
+task processHubScripts(type: Copy) {
+    from('scripts/websubhub')
+    into("${buildDir}/processed-scripts/websubhub")
+    def mainClass = extractMainClass("${componentsDir}/websubhub/Ballerina.toml")
+    filter { line ->
+        line.replace('@MAIN_CLASS@', mainClass)
+    }
+}
+
+// Task to process consolidator scripts
+task processConsolidatorScripts(type: Copy) {
+    from('scripts/websubhub-consolidator')
+    into("${buildDir}/processed-scripts/websubhub-consolidator")
+    def mainClass = extractMainClass("${componentsDir}/websubhub-consolidator/Ballerina.toml")
+    filter { line ->
+        line.replace('@MAIN_CLASS@', mainClass)
+    }
+}
+
 distributions {
     hub {
         distributionBaseName = 'wso2websubhub'
-        def scriptsDir = file('scripts/websubhub')
         def confDir = file('conf/websubhub')
+
         contents {
             from("${componentsDir}/websubhub/target/bin") {
                 include "*.jar"
@@ -35,8 +122,8 @@ distributions {
                 }
                 into "lib"
             }
-            
-            from("${confDir}") {    
+
+            from("${confDir}") {
                 include "Config.toml"
                 into "conf"
             }
@@ -44,8 +131,8 @@ distributions {
             from("${componentsDir}/websubhub/resources") {
                 into "conf/resources"
             }
-            
-            from(scriptsDir) {
+
+            from("${buildDir}/processed-scripts/websubhub") {
                 include "*.sh", "*.bat"
                 into "bin"
                 fileMode = 0755
@@ -55,13 +142,17 @@ distributions {
                 include "LICENSE*"
                 into ""
             }
+
+            from (extDir) {
+                into "wso2/extensions"
+            }
         }
     }
 
     consolidator {
         distributionBaseName = 'wso2websubhub-consolidator'
-        def scriptsDir = file('scripts/websubhub-consolidator')
         def confDir = file('conf/websubhub-consolidator')
+
         contents {
             from("${componentsDir}/websubhub-consolidator/target/bin") {
                 include "*.jar"
@@ -70,7 +161,7 @@ distributions {
                 }
                 into "lib"
             }
-            
+
             from("${confDir}") {
                 include "Config.toml"
                 into "conf"
@@ -80,7 +171,7 @@ distributions {
                 into "conf/resources"
             }
 
-            from(scriptsDir) {
+            from("${buildDir}/processed-scripts/websubhub-consolidator") {
                 include "*.sh", "*.bat"
                 into "bin"
                 fileMode = 0755
@@ -89,6 +180,10 @@ distributions {
             from(rootProject.projectDir) {
                 include "LICENSE*"
                 into ""
+            }
+
+            from (extDir) {
+                into "wso2/extensions"
             }
         }
     }
@@ -139,10 +234,10 @@ publishing {
     }
 }
 
-hubDistZip.dependsOn(':websubhub-workspace:build')
+hubDistZip.dependsOn(':websubhub-workspace:build', processHubScripts)
 hubDistTar.enabled = false
 
-consolidatorDistZip.dependsOn(':websubhub-workspace:build')
+consolidatorDistZip.dependsOn(':websubhub-workspace:build', processConsolidatorScripts)
 consolidatorDistTar.enabled = false
 
 websubhubDistributionDistZip.dependsOn(hubDistZip)

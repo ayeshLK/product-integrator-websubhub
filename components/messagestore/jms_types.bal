@@ -14,20 +14,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import websubhub.consolidator.common;
+import ballerinax/java.jms;
 
-import wso2/messagestore as store;
+# Defines the JMS message store configurations
+public type JmsMessageStore record {|
+    # Configurations related to JMS message store connection    
+    JmsConfig solace;
+|};
 
-# Common configurations used to configure the websubhub consolidator server
-public configurable common:ServerConfig server = ?;
+public type JmsConfig record {|
+    *jms:ConnectionConfiguration;
+    # JMS consumer-specific configurations
+    JmsConsumerConfig consumer;
+|};
 
-# Configurations related to websubhub consolidator server state
-public configurable common:ServerStateConfig state = ?;
-
-# Messaging store connection related configurations
-// public configurable store:KafkaMessageStore|store:SolaceMessageStore store = ?;
-public configurable record {|
-    store:KafkaConfig kafka?;
-    store:SolaceConfig solace?;
-    store:JmsConfig jms?;
-|} store = ?;
+# Defines configurations for the JMS consumer.
+public type JmsConsumerConfig record {|
+    # The timeout to wait for one receive call to the JMS message store
+    decimal receiveTimeout = 10;
+|};

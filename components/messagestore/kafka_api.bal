@@ -162,7 +162,7 @@ isolated client class KafkaConsumer {
         // As Kafka does not have a `nack` functionality no need to implement this API
     }
 
-    isolated remote function close() returns error? {
+    isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
         return self.consumer->close(self.config.gracefulClosePeriod);
     }
 }

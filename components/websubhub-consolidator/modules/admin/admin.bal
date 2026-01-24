@@ -46,11 +46,11 @@ isolated function createStateEventsSubscription() returns error? {
         log:printWarn(string `Subscription for Topic [${topic}] and Subscriber [${consumerId}] exists`);
         return;
     }
-    return result;    
+    return result;
 }
 
 isolated function createAdministrator() returns store:Administrator|error {
-    var {kafka, solace} = config:store;
+    var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceAdministrator(solace);
     }

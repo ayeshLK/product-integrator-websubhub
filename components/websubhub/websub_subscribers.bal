@@ -118,22 +118,32 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
         }
     } on fail var e {
         common:logRecoverableError("Error occurred while sending notification to subscriber", e);
-        error? result = consumerEp->close();
-        if result is error {
-            common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
-        }
 
         if e is common:InvalidSubscriptionError {
+            error? result = consumerEp->close(store:PERMANENT);
+            if result is error {
+                common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
+            }
             return;
         }
+
         if !isValidConsumer(subscription.hubTopic, subscriberId) {
             // In some cases a messaging consumer will be attached to an entity in the message store (queue or topic) and that
             // entity will be removed when unsubscribing, hence it is appropriate to stop the consumer in those cases
+            error? result = consumerEp->close(store:PERMANENT);
+            if result is error {
+                common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
+            }
             return;
         }
 
         // If subscription-deleted error received, remove the subscription
         if e is websubhub:SubscriptionDeletedError {
+            error? result = consumerEp->close(store:PERMANENT);
+            if result is error {
+                common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
+            }
+
             websubhub:VerifiedUnsubscription unsubscription = {
                 hubMode: "unsubscribe",
                 hubTopic: subscription.hubTopic,
@@ -155,6 +165,10 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
             return;
         }
 
+        error? result = consumerEp->close(store:TEMPORARY);
+        if result is error {
+            common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
+        }
         // Persist the subscription as a `stale` subscription whenever the content delivery fails
         common:StaleSubscription staleSubscription = {
             ...subscription
