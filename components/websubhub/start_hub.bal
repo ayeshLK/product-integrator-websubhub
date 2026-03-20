@@ -14,13 +14,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import websubhub.common;
 import websubhub.config;
 
 import ballerina/http;
 import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/websubhub;
-import websubhub.common;
 
 public function main() returns error? {
     // Starting the health-check service
