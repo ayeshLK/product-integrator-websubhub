@@ -17,7 +17,10 @@
 import ballerina/log;
 import ballerina/websubhub;
 
+import xlibb/pipe;
+
 isolated map<websubhub:TopicRegistration> registeredTopicsCache = {};
+final pipe:Pipe stateSync = new (5);
 
 isolated function processWebsubTopicsSnapshotState(websubhub:TopicRegistration[] topics) returns error? {
     log:printDebug("Received latest state-snapshot for websub topics", newState = topics);
@@ -28,10 +31,18 @@ isolated function processWebsubTopicsSnapshotState(websubhub:TopicRegistration[]
 
 isolated function processTopicRegistration(websubhub:TopicRegistration topicRegistration) returns error? {
     log:printDebug(string `Topic registration event received for topic ${topicRegistration.topic}, hence adding the topic to the internal state`);
+    boolean topicAvailable = true;
     lock {
         // add the topic if topic-registration event received
         if !registeredTopicsCache.hasKey(topicRegistration.topic) {
+            topicAvailable = false;
             registeredTopicsCache[topicRegistration.topic] = topicRegistration.cloneReadOnly();
+        }
+    }
+    if !topicAvailable {
+        error? result = stateSync.produce(topicRegistration.cloneReadOnly(), 5);
+        if result is error {
+            log:printDebug("Publishing to the state-sync timed-out", 'error = result);
         }
     }
 }

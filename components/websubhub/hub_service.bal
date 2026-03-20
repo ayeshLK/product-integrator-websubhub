@@ -21,6 +21,7 @@ import websubhub.persistence as persist;
 import websubhub.security;
 
 import ballerina/http;
+import ballerina/log;
 import ballerina/time;
 import ballerina/websubhub;
 
@@ -131,6 +132,10 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
     # + return - `websubhub:SubscriptionDeniedError` if the subscription is denied by the hub or else `()`
     isolated remote function onSubscriptionValidation(websubhub:Subscription message)
                 returns websubhub:SubscriptionDeniedError? {
+        websubhub:TopicRegistration|error result = stateSync.consume(5);
+        if result is error {
+            log:printDebug("Consuming messages from state-sync timed-out", 'error = result);
+        }
         boolean topicAvailable = false;
         lock {
             topicAvailable = registeredTopicsCache.hasKey(message.hubTopic);
