@@ -15,6 +15,7 @@
 // under the License.
 
 import websubhub.consolidator.admin as _;
+import websubhub.consolidator.common;
 import websubhub.consolidator.config;
 
 import wso2/messagestore as store;
@@ -23,15 +24,16 @@ import wso2/messagestore as store;
 public final store:Producer statePersistProducer = check initStatePersistProducer();
 
 function initStatePersistProducer() returns store:Producer|error {
+    string clientId = string `consolidated-state-persist-${common:generateRandomString()}`;
     var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
-        return store:createSolaceProducer(solace, "consolidated-state-persist");
+        return store:createSolaceProducer(solace, clientId);
     }
     if jms is store:JmsConfig {
-        return store:createJmsProducer(jms, "consolidated-state-persist");
+        return store:createJmsProducer(jms, clientId);
     }
     if kafka is store:KafkaConfig {
-        return store:createKafkaProducer(kafka, "consolidated-state-persist");
+        return store:createKafkaProducer(kafka, clientId);
     }
     return error("Error occurred while reading the message store configurations when creating the store producer");
 }

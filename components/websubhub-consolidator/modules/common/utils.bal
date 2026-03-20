@@ -14,7 +14,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/lang.'string as strings;
 import ballerina/log;
+import ballerina/random;
 
 # Generates a group-name for a subscriber.
 #
@@ -43,4 +45,28 @@ public isolated function logFatalError(string msg, error? 'error = (), *log:KeyV
 public isolated function logRecoverableError(string msg, error? 'error = (), *log:KeyValues keyValues) {
     keyValues["severity"] = "RECOVERABLE";
     log:printError(msg, 'error, keyValues = keyValues);
+}
+
+# Generates a random `string` of 10 characters
+#
+# + return - The generated `string`
+public isolated function generateRandomString() returns string {
+    int[] codePoints = [];
+    int leftLimit = 48; // numeral '0'
+    int rightLimit = 122; // letter 'z'
+    int iterator = 0;
+    while iterator < 10 {
+        int|error randomInt = random:createIntInRange(leftLimit, rightLimit);
+        if randomInt is error {
+            break;
+        } else {
+            // character literals from 48 - 57 are numbers | 65 - 90 are capital letters | 97 - 122 are simple letters
+            if (randomInt <= 57 || randomInt >= 65) && (randomInt <= 90 || randomInt >= 97) {
+                codePoints.push(randomInt);
+                iterator += 1;
+            }
+        }
+    }
+    string|error generatedValue = strings:fromCodePointInts(codePoints);
+    return generatedValue is string ? generatedValue : "";
 }
