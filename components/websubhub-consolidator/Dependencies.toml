@@ -387,7 +387,7 @@ dependencies = [
 [[package]]
 org = "wso2"
 name = "websubhub.consolidator"
-version = "1.0.0"
+version = "1.0.1-SNAPSHOT"
 dependencies = [
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "lang.runtime"},
