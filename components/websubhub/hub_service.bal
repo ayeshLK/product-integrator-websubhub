@@ -167,6 +167,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
             string errorMessage = string
                 `Failed to register subscription for topic ${message.hubTopic} and subscriber ${message.hubCallback}: ${subscriptionErr.message()}`;
             common:logRecoverableError(errorMessage, subscriptionErr);
+            return subscriptionErr;
         }
     }
 
@@ -225,7 +226,8 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
     # Processes a verified unsubscription request.
     #
     # + message - Details of the unsubscription
-    isolated remote function onUnsubscriptionIntentVerified(websubhub:VerifiedUnsubscription message) {
+    # + return - `error` if there is any unexpected error or else `()`
+    isolated remote function onUnsubscriptionIntentVerified(websubhub:VerifiedUnsubscription message) returns error? {
         string subscriberId = common:generateSubscriberId(message.hubTopic, message.hubCallback);
         websubhub:VerifiedSubscription? subscription = getSubscription(subscriberId);
         if subscription is () {
@@ -240,6 +242,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
             string errorMessage = string
                 `Failed to deregister subscription for topic ${message.hubTopic} and subscriber ${message.hubCallback}: ${unsubscriptionErr.message()}`;
             common:logRecoverableError(errorMessage, unsubscriptionErr);
+            return unsubscriptionErr;
         }
     }
 
