@@ -378,10 +378,16 @@ isolated function extractSolaceSecureSocketConfig(solace:SecureSocket? config) r
 }
 
 isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns solace:KeyStore? {
+    boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
+    if !mTlsEnabled {
+        log:printWarn("[Solace MessageStore] Ignoring keystore configurations as mTLS is disabled for Solace");
+        return;
+    }
+
     string keystore = os:getEnv("WEBSUBHUB_KEYSTORE_PATH");
     string keystorePassword = os:getEnv("WEBSUBHUB_KEYSTORE_PASSWORD");
     if (keystore == "" && keystorePassword != "") || (keystore != "" && keystorePassword == "") {
-        log:printWarn("Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
+        log:printWarn("[Solace MessageStore] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
     }
 
     if config is solace:KeyStore {
@@ -407,7 +413,7 @@ isolated function extractSolaceTruststoreConfig(solace:TrustStore? config) retur
     string truststore = os:getEnv("WEBSUBHUB_TRUSTSTORE_PATH");
     string truststorePassword = os:getEnv("WEBSUBHUB_TRUSTSTORE_PASSWORD");
     if (truststore == "" && truststorePassword != "") || (truststore != "" && truststorePassword == "") {
-        log:printWarn("Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
+        log:printWarn("[Solace MessageStore] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
     }
 
     if config is solace:TrustStore {
