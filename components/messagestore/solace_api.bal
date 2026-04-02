@@ -16,6 +16,7 @@
 
 import ballerina/http;
 import ballerina/log;
+import ballerina/os;
 
 import xlibb/solace;
 import xlibb/solace.semp;
@@ -32,7 +33,7 @@ isolated client class SolaceProducer {
             vpnName: config.messageVpn,
             connectionTimeout: config.connectionTimeout,
             readTimeout: config.readTimeout,
-            secureSocket: config.secureSocket,
+            secureSocket: extractSolaceSecureSocketConfig(config.secureSocket),
             auth: config.auth,
             retryConfig: config.retryConfig
         };
@@ -66,7 +67,7 @@ isolated client class SolaceConsumer {
             vpnName: config.messageVpn,
             connectionTimeout: config.connectionTimeout,
             readTimeout: config.readTimeout,
-            secureSocket: config.secureSocket,
+            secureSocket: extractSolaceSecureSocketConfig(config.secureSocket),
             auth: config.auth,
             retryConfig: config.retryConfig,
             subscriptionConfig: {
@@ -353,9 +354,84 @@ isolated client class SolaceAdministrator {
     }
 }
 
+isolated function extractSolaceSecureSocketConfig(solace:SecureSocket? config) returns solace:SecureSocket? {
+    solace:KeyStore? extractedKeyStore = extractSolaceKeystoreConfig(config?.keyStore);
+    solace:TrustStore? extractedTrustStore = extractSolaceTruststoreConfig(config?.trustStore);
+
+    if config is solace:SecureSocket {
+        var {keyStore, trustStore, ...conf} = config;
+        return {
+            keyStore: extractedKeyStore,
+            trustStore: extractedTrustStore,
+            ...conf
+        };
+    }
+
+    if extractedKeyStore is () && extractedTrustStore is () {
+        return;
+    }
+
+    return {
+        keyStore: extractedKeyStore,
+        trustStore: extractedTrustStore
+    };
+}
+
+isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns solace:KeyStore? {
+    string keystore = os:getEnv("WEBSUBHUB_KEYSTORE_PATH");
+    string keystorePassword = os:getEnv("WEBSUBHUB_KEYSTORE_PASSWORD");
+    if (keystore == "" && keystorePassword != "") || (keystore != "" && keystorePassword == "") {
+        log:printWarn("Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
+    }
+
+    if config is solace:KeyStore {
+        if keystore != "" && keystorePassword != "" {
+            return {
+                location: keystore,
+                password: keystorePassword
+            };
+        }
+        return config;
+    }
+
+    if keystore != "" && keystorePassword != "" {
+        return {
+            location: keystore,
+            password: keystorePassword
+        };
+    }
+    return;
+}
+
+isolated function extractSolaceTruststoreConfig(solace:TrustStore? config) returns solace:TrustStore? {
+    string truststore = os:getEnv("WEBSUBHUB_TRUSTSTORE_PATH");
+    string truststorePassword = os:getEnv("WEBSUBHUB_TRUSTSTORE_PASSWORD");
+    if (truststore == "" && truststorePassword != "") || (truststore != "" && truststorePassword == "") {
+        log:printWarn("Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
+    }
+
+    if config is solace:TrustStore {
+        if truststore != "" && truststorePassword != "" {
+            return {
+                location: truststore,
+                password: truststorePassword
+            };
+        }
+        return config;
+    }
+
+    if truststore != "" && truststorePassword != "" {
+        return {
+            location: truststore,
+            password: truststorePassword
+        };
+    }
+    return;
+}
+
 # Initialize a producer for Solace message store.
 #
-# + config - The Solace connection configurations
+# + config - The Solace connection configurations  
 # + clientName - The unique client name to use to identify the connection
 # + return - A `store:Producer` for Solace message store, or else return an `error` if the operation fails
 public isolated function createSolaceProducer(SolaceConfig config, string clientName) returns Producer|error {
