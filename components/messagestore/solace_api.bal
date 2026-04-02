@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/crypto;
 import ballerina/http;
 import ballerina/log;
 import ballerina/os;
@@ -136,7 +137,7 @@ isolated client class SolaceAdministrator {
             serviceUrl = config.admin.url,
             config = {
                 timeout: config.admin.timeout,
-                secureSocket: config.admin.secureSocket,
+                secureSocket: extractSolaceAdminSecureSocketConfig(config.admin.secureSocket),
                 auth: config.admin.auth,
                 retryConfig: config.admin.retryConfig
             }
@@ -390,23 +391,13 @@ isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns s
         log:printWarn("[Solace MessageStore] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
     }
 
-    if config is solace:KeyStore {
-        if keystore != "" && keystorePassword != "" {
-            return {
-                location: keystore,
-                password: keystorePassword
-            };
-        }
-        return config;
-    }
-
     if keystore != "" && keystorePassword != "" {
         return {
             location: keystore,
             password: keystorePassword
         };
     }
-    return;
+    return config;
 }
 
 isolated function extractSolaceTruststoreConfig(solace:TrustStore? config) returns solace:TrustStore? {
@@ -416,23 +407,74 @@ isolated function extractSolaceTruststoreConfig(solace:TrustStore? config) retur
         log:printWarn("[Solace MessageStore] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
     }
 
-    if config is solace:TrustStore {
-        if truststore != "" && truststorePassword != "" {
-            return {
-                location: truststore,
-                password: truststorePassword
-            };
-        }
-        return config;
-    }
-
     if truststore != "" && truststorePassword != "" {
         return {
             location: truststore,
             password: truststorePassword
         };
     }
-    return;
+    return config;
+}
+
+isolated function extractSolaceAdminSecureSocketConfig(http:ClientSecureSocket? config) returns http:ClientSecureSocket? {
+    crypto:KeyStore|http:CertKey? extractedKeyStore = extractSolaceAdminKeystoreConfig(config?.'key);
+    crypto:TrustStore|string? extractedTrustStore = extractSolaceAdminTruststoreConfig(config?.'cert);
+
+    if config is http:ClientSecureSocket {
+        var {'key, cert, ...conf} = config;
+        return {
+            'key: extractedKeyStore,
+            'cert: extractedTrustStore,
+            ...conf
+        };
+    }
+
+    if extractedKeyStore is () && extractedTrustStore is () {
+        return;
+    }
+
+    return {
+        'key: extractedKeyStore,
+        'cert: extractedTrustStore
+    };
+}
+
+isolated function extractSolaceAdminKeystoreConfig(crypto:KeyStore|http:CertKey? 'key) returns crypto:KeyStore|http:CertKey? {
+    boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
+    if !mTlsEnabled {
+        log:printWarn("[Solace MessageStore Admin] Ignoring keystore configurations as mTLS is disabled for Solace");
+        return;
+    }
+
+    string keystore = os:getEnv("WEBSUBHUB_KEYSTORE_PATH");
+    string keystorePassword = os:getEnv("WEBSUBHUB_KEYSTORE_PASSWORD");
+    if (keystore == "" && keystorePassword != "") || (keystore != "" && keystorePassword == "") {
+        log:printWarn("[Solace MessageStore Admin] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
+    }
+
+    if keystore != "" && keystorePassword != "" {
+        return {
+            path: keystore,
+            password: keystorePassword
+        };
+    }
+    return 'key;
+}
+
+isolated function extractSolaceAdminTruststoreConfig(crypto:TrustStore|string? 'cert) returns crypto:TrustStore|string? {
+    string truststore = os:getEnv("WEBSUBHUB_TRUSTSTORE_PATH");
+    string truststorePassword = os:getEnv("WEBSUBHUB_TRUSTSTORE_PASSWORD");
+    if (truststore == "" && truststorePassword != "") || (truststore != "" && truststorePassword == "") {
+        log:printWarn("[Solace MessageStore Admin] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
+    }
+
+    if truststore != "" && truststorePassword != "" {
+        return {
+            path: truststore,
+            password: truststorePassword
+        };
+    }
+    return 'cert;
 }
 
 # Initialize a producer for Solace message store.
