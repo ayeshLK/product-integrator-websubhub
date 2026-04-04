@@ -15,8 +15,9 @@
 // under the License.
 
 import websubhub.consolidator.admin as _;
-import websubhub.consolidator.common;
 import websubhub.consolidator.config;
+
+import ballerina/uuid;
 
 import wso2/messagestore as store;
 
@@ -24,7 +25,7 @@ import wso2/messagestore as store;
 public final store:Producer statePersistProducer = check initStatePersistProducer();
 
 function initStatePersistProducer() returns store:Producer|error {
-    string clientId = string `consolidated-state-persist-${common:generateRandomString()}`;
+    string clientId = string `consolidated-state-persist-${uuid:createRandomUuid()}`;
     var {kafka, solace, jms} = config:store;
     if solace is store:SolaceConfig {
         return store:createSolaceProducer(solace, clientId);
