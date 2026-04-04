@@ -231,7 +231,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
     # Processes a verified unsubscription request.
     #
     # + message - Details of the unsubscription
-    # + return - `error` if there is any unexpected error or else `()`
+    # + return - `error` if there is any unexpected error else `()`
     isolated remote function onUnsubscriptionIntentVerified(websubhub:VerifiedUnsubscription message) returns error? {
         string subscriberId = common:generateSubscriberId(message.hubTopic, message.hubCallback);
         websubhub:VerifiedSubscription? subscription = getSubscription(subscriberId);
