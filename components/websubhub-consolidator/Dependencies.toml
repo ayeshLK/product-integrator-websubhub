@@ -205,9 +205,6 @@ dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.regexp"}
 ]
-modules = [
-	{org = "ballerina", packageName = "lang.string", moduleName = "lang.string"}
-]
 
 [[package]]
 org = "ballerina"
@@ -277,18 +274,6 @@ dependencies = [
 
 [[package]]
 org = "ballerina"
-name = "random"
-version = "1.7.0"
-dependencies = [
-	{org = "ballerina", name = "jballerina.java"},
-	{org = "ballerina", name = "time"}
-]
-modules = [
-	{org = "ballerina", packageName = "random", moduleName = "random"}
-]
-
-[[package]]
-org = "ballerina"
 name = "task"
 version = "2.11.1"
 dependencies = [
@@ -322,6 +307,9 @@ dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.int"},
 	{org = "ballerina", name = "time"}
+]
+modules = [
+	{org = "ballerina", packageName = "uuid", moduleName = "uuid"}
 ]
 
 [[package]]
@@ -406,10 +394,9 @@ version = "1.0.1-SNAPSHOT"
 dependencies = [
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "lang.runtime"},
-	{org = "ballerina", name = "lang.string"},
 	{org = "ballerina", name = "lang.value"},
 	{org = "ballerina", name = "log"},
-	{org = "ballerina", name = "random"},
+	{org = "ballerina", name = "uuid"},
 	{org = "ballerina", name = "websubhub"},
 	{org = "ballerinai", name = "observe"},
 	{org = "wso2", name = "messagestore"}
