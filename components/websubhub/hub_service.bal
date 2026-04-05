@@ -172,7 +172,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
             string errorMessage = string
                 `Failed to register subscription for topic ${message.hubTopic} and subscriber ${message.hubCallback}: ${subscriptionErr.message()}`;
             common:logRecoverableError(errorMessage, subscriptionErr);
-            return subscriptionErr;
+            return error(errorMessage);
         }
     }
 
@@ -247,7 +247,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
             string errorMessage = string
                 `Failed to deregister subscription for topic ${message.hubTopic} and subscriber ${message.hubCallback}: ${unsubscriptionErr.message()}`;
             common:logRecoverableError(errorMessage, unsubscriptionErr);
-            return unsubscriptionErr;
+            return error(errorMessage);
         }
     }
 
