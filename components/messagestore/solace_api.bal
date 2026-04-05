@@ -381,7 +381,7 @@ isolated function extractSolaceSecureSocketConfig(solace:SecureSocket? config) r
 isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns solace:KeyStore? {
     boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
     if !mTlsEnabled {
-        log:printWarn("[Solace MessageStore] Ignoring keystore configurations as mTLS is disabled for Solace");
+        log:printDebug("[Solace MessageStore] Ignoring keystore configurations as mTLS is disabled for Solace");
         return;
     }
 
@@ -392,7 +392,7 @@ isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns s
             password: keystore.password
         };
     }
-    log:printWarn("[Solace MessageStore] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
+    log:printDebug("[Solace MessageStore] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
     return config;
 }
 
@@ -404,7 +404,7 @@ isolated function extractSolaceTruststoreConfig(solace:TrustStore? config) retur
             password: truststore.password
         };
     }
-    log:printWarn("[Solace MessageStore] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
+    log:printDebug("[Solace MessageStore] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
     return config;
 }
 
@@ -434,7 +434,7 @@ isolated function extractSolaceAdminSecureSocketConfig(http:ClientSecureSocket? 
 isolated function extractSolaceAdminKeystoreConfig(crypto:KeyStore|http:CertKey? 'key) returns crypto:KeyStore|http:CertKey? {
     boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
     if !mTlsEnabled {
-        log:printWarn("[Solace MessageStore Admin] Ignoring keystore configurations as mTLS is disabled for Solace");
+        log:printDebug("[Solace MessageStore Admin] Ignoring keystore configurations as mTLS is disabled for Solace");
         return;
     }
 
@@ -445,7 +445,7 @@ isolated function extractSolaceAdminKeystoreConfig(crypto:KeyStore|http:CertKey?
             password: keystore.password
         };
     }
-    log:printWarn("[Solace MessageStore Admin] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
+    log:printDebug("[Solace MessageStore Admin] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
     return 'key;
 }
 
@@ -457,7 +457,7 @@ isolated function extractSolaceAdminTruststoreConfig(crypto:TrustStore|string? '
             password: truststore.password
         };
     }
-    log:printWarn("[Solace MessageStore Admin] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
+    log:printDebug("[Solace MessageStore Admin] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
     return 'cert;
 }
 
