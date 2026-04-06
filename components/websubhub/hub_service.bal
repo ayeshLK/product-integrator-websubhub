@@ -21,6 +21,7 @@ import websubhub.persistence as persist;
 import websubhub.security;
 
 import ballerina/http;
+import ballerina/log;
 import ballerina/time;
 import ballerina/websubhub;
 
@@ -131,6 +132,10 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
     # + return - `websubhub:SubscriptionDeniedError` if the subscription is denied by the hub or else `()`
     isolated remote function onSubscriptionValidation(websubhub:Subscription message)
                 returns websubhub:SubscriptionDeniedError? {
+        websubhub:TopicRegistration|error result = stateSync.consume(5);
+        if result is error {
+            log:printDebug("Consuming messages from state-sync timed-out", 'error = result);
+        }
         boolean topicAvailable = false;
         lock {
             topicAvailable = registeredTopicsCache.hasKey(message.hubTopic);
@@ -167,6 +172,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
             string errorMessage = string
                 `Failed to register subscription for topic ${message.hubTopic} and subscriber ${message.hubCallback}: ${subscriptionErr.message()}`;
             common:logRecoverableError(errorMessage, subscriptionErr);
+            return error(errorMessage);
         }
     }
 
@@ -225,7 +231,8 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
     # Processes a verified unsubscription request.
     #
     # + message - Details of the unsubscription
-    isolated remote function onUnsubscriptionIntentVerified(websubhub:VerifiedUnsubscription message) {
+    # + return - `error` if there is any unexpected error else `()`
+    isolated remote function onUnsubscriptionIntentVerified(websubhub:VerifiedUnsubscription message) returns error? {
         string subscriberId = common:generateSubscriberId(message.hubTopic, message.hubCallback);
         websubhub:VerifiedSubscription? subscription = getSubscription(subscriberId);
         if subscription is () {
@@ -240,6 +247,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
             string errorMessage = string
                 `Failed to deregister subscription for topic ${message.hubTopic} and subscriber ${message.hubCallback}: ${unsubscriptionErr.message()}`;
             common:logRecoverableError(errorMessage, unsubscriptionErr);
+            return error(errorMessage);
         }
     }
 

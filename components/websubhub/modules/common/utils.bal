@@ -66,7 +66,7 @@ public isolated function extractListenerSecureSocketConfig(http:ListenerSecureSo
     if (keystore == "" && keystorePassword != "") || (keystore != "" && keystorePassword == "") {
         log:printWarn("Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
     }
-    
+
     if config is http:ListenerSecureSocket {
         var {'key, ...conf} = config;
         if keystore != "" && keystorePassword != "" {

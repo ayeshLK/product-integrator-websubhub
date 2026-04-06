@@ -14,8 +14,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/crypto;
 import ballerina/http;
 import ballerina/log;
+import ballerina/os;
 
 import xlibb/solace;
 import xlibb/solace.semp;
@@ -32,7 +34,7 @@ isolated client class SolaceProducer {
             vpnName: config.messageVpn,
             connectionTimeout: config.connectionTimeout,
             readTimeout: config.readTimeout,
-            secureSocket: config.secureSocket,
+            secureSocket: extractSolaceSecureSocketConfig(config.secureSocket),
             auth: config.auth,
             retryConfig: config.retryConfig
         };
@@ -66,7 +68,7 @@ isolated client class SolaceConsumer {
             vpnName: config.messageVpn,
             connectionTimeout: config.connectionTimeout,
             readTimeout: config.readTimeout,
-            secureSocket: config.secureSocket,
+            secureSocket: extractSolaceSecureSocketConfig(config.secureSocket),
             auth: config.auth,
             retryConfig: config.retryConfig,
             subscriptionConfig: {
@@ -135,7 +137,7 @@ isolated client class SolaceAdministrator {
             serviceUrl = config.admin.url,
             config = {
                 timeout: config.admin.timeout,
-                secureSocket: config.admin.secureSocket,
+                secureSocket: extractSolaceAdminSecureSocketConfig(config.admin.secureSocket),
                 auth: config.admin.auth,
                 retryConfig: config.admin.retryConfig
             }
@@ -353,9 +355,129 @@ isolated client class SolaceAdministrator {
     }
 }
 
+isolated function extractSolaceSecureSocketConfig(solace:SecureSocket? config) returns solace:SecureSocket? {
+    solace:KeyStore? extractedKeyStore = extractSolaceKeystoreConfig(config?.keyStore);
+    solace:TrustStore? extractedTrustStore = extractSolaceTruststoreConfig(config?.trustStore);
+
+    if config is solace:SecureSocket {
+        var {keyStore, trustStore, ...conf} = config;
+        return {
+            keyStore: extractedKeyStore,
+            trustStore: extractedTrustStore,
+            ...conf
+        };
+    }
+
+    if extractedKeyStore is () && extractedTrustStore is () {
+        return;
+    }
+
+    return {
+        keyStore: extractedKeyStore,
+        trustStore: extractedTrustStore
+    };
+}
+
+isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns solace:KeyStore? {
+    boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
+    if !mTlsEnabled {
+        log:printDebug("[Solace MessageStore] Ignoring keystore configurations as mTLS is disabled for Solace");
+        return;
+    }
+
+    var keystore = getSecureStoreFromEnv(KEYSTORE_PATH, KEYSTORE_PASSWORD);
+    if keystore !is () {
+        return {
+            location: keystore.path,
+            password: keystore.password
+        };
+    }
+    log:printDebug("[Solace MessageStore] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
+    return config;
+}
+
+isolated function extractSolaceTruststoreConfig(solace:TrustStore? config) returns solace:TrustStore? {
+    var truststore = getSecureStoreFromEnv(TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD);
+    if truststore !is () {
+        return {
+            location: truststore.path,
+            password: truststore.password
+        };
+    }
+    log:printDebug("[Solace MessageStore] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
+    return config;
+}
+
+isolated function extractSolaceAdminSecureSocketConfig(http:ClientSecureSocket? config) returns http:ClientSecureSocket? {
+    crypto:KeyStore|http:CertKey? extractedKeyStore = extractSolaceAdminKeystoreConfig(config?.'key);
+    crypto:TrustStore|string? extractedTrustStore = extractSolaceAdminTruststoreConfig(config?.'cert);
+
+    if config is http:ClientSecureSocket {
+        var {'key, cert, ...conf} = config;
+        return {
+            'key: extractedKeyStore,
+            'cert: extractedTrustStore,
+            ...conf
+        };
+    }
+
+    if extractedKeyStore is () && extractedTrustStore is () {
+        return;
+    }
+
+    return {
+        'key: extractedKeyStore,
+        'cert: extractedTrustStore
+    };
+}
+
+isolated function extractSolaceAdminKeystoreConfig(crypto:KeyStore|http:CertKey? 'key) returns crypto:KeyStore|http:CertKey? {
+    boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
+    if !mTlsEnabled {
+        log:printDebug("[Solace MessageStore Admin] Ignoring keystore configurations as mTLS is disabled for Solace");
+        return;
+    }
+
+    var keystore = getSecureStoreFromEnv(KEYSTORE_PATH, KEYSTORE_PASSWORD);
+    if keystore !is () {
+        return {
+            path: keystore.path,
+            password: keystore.password
+        };
+    }
+    log:printDebug("[Solace MessageStore Admin] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
+    return 'key;
+}
+
+isolated function extractSolaceAdminTruststoreConfig(crypto:TrustStore|string? 'cert) returns crypto:TrustStore|string? {
+    var truststore = getSecureStoreFromEnv(TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD);
+    if truststore !is () {
+        return {
+            path: truststore.path,
+            password: truststore.password
+        };
+    }
+    log:printDebug("[Solace MessageStore Admin] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
+    return 'cert;
+}
+
+const KEYSTORE_PATH = "WEBSUBHUB_KEYSTORE_PATH";
+const KEYSTORE_PASSWORD = "WEBSUBHUB_KEYSTORE_PASSWORD";
+const TRUSTSTORE_PATH = "WEBSUBHUB_TRUSTSTORE_PATH";
+const TRUSTSTORE_PASSWORD = "WEBSUBHUB_TRUSTSTORE_PASSWORD";
+
+isolated function getSecureStoreFromEnv(string storePathKey, string storePasswordKey) returns record {|string path; string password;|}? {
+    string path = os:getEnv(storePathKey);
+    string password = os:getEnv(storePasswordKey);
+    if path == "" || password == "" {
+        return;
+    }
+    return {path, password};
+}
+
 # Initialize a producer for Solace message store.
 #
-# + config - The Solace connection configurations
+# + config - The Solace connection configurations  
 # + clientName - The unique client name to use to identify the connection
 # + return - A `store:Producer` for Solace message store, or else return an `error` if the operation fails
 public isolated function createSolaceProducer(SolaceConfig config, string clientName) returns Producer|error {
