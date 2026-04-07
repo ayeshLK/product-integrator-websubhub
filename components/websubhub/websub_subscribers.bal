@@ -233,7 +233,23 @@ isolated function constructContentDistMsg(store:Message message) returns websubh
     websubhub:ContentDistributionMessage distributionMsg = {
         content: payload,
         contentType: mime:APPLICATION_JSON,
-        headers: message.metadata
+        headers: constructDeliveryHeaders(message)
     };
     return distributionMsg;
+}
+
+isolated function constructDeliveryHeaders(store:Message message) returns map<string|string[]>? {
+    string? messageId = message.id;
+    if messageId is () {
+        return message.metadata;
+    }
+
+    map<string|string[]>? metadata = message.metadata;
+    if metadata is () {
+        return {
+            MESSAGE_ID_HEADER: messageId
+        };
+    }
+    metadata[MESSAGE_ID_HEADER] = messageId;
+    return metadata;
 }

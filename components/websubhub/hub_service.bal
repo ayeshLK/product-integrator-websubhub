@@ -307,6 +307,10 @@ isolated function getMessageId(http:Headers httpHeaders) returns string? {
 isolated function getHeadersMap(http:Headers httpHeaders) returns map<string[]> {
     map<string[]> headers = {};
     foreach string headerName in httpHeaders.getHeaderNames() {
+        // exclude the messageId header as it will be dealt with separately
+        if headerName == MESSAGE_ID_HEADER {
+            continue;
+        }
         var headerValues = httpHeaders.getHeaders(headerName);
         // safe to ingore the error as here we are retrieving only the available headers
         if headerValues is error {
