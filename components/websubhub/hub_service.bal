@@ -275,8 +275,8 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
         }
         if topicAvailable {
             string? messageId = getMessageId(headers);
-            map<string[]> messageHeaders = getHeadersMap(headers);
-            error? errorResponse = persist:addUpdateMessage(msg.hubTopic, msg, messageHeaders, messageId);
+            map<string[]> metadata = getMetadata(headers);
+            error? errorResponse = persist:addUpdateMessage(msg.hubTopic, msg, metadata, messageId);
             if errorResponse is websubhub:UpdateMessageError {
                 return errorResponse;
             } else if errorResponse is error {
@@ -304,7 +304,7 @@ isolated function getMessageId(http:Headers httpHeaders) returns string? {
     return msgId;
 }
 
-isolated function getHeadersMap(http:Headers httpHeaders) returns map<string[]> {
+isolated function getMetadata(http:Headers httpHeaders) returns map<string[]> {
     map<string[]> headers = {};
     foreach string headerName in httpHeaders.getHeaderNames() {
         // exclude the messageId header as it will be dealt with separately
