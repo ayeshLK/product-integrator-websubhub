@@ -19,6 +19,8 @@ import ballerina/log;
 
 # Represents a message published to a message store.
 public type Message record {
+    # The message Id
+    string id?;
     # The message payload
     byte[] payload;
     # The metadata associated with the message (e.g., Kafka message headers or JMS message properties)

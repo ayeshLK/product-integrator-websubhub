@@ -121,6 +121,7 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
                 check consumerEp->nack(message);
                 check result;
             } else {
+                common:logContentDelivery(topic, subscription.hubCallback, message.id);
                 check consumerEp->ack(message);
             }
         }

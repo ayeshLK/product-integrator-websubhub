@@ -29,6 +29,7 @@ isolated client class JmsProducer {
 
     isolated remote function send(string topic, Message message) returns error? {
         jms:BytesMessage jmsMessage = {
+            correlationId: message.id,
             content: message.payload
         };
         check self.producer->sendTo(
@@ -73,6 +74,7 @@ isolated client class JmsConsumer {
             return;
         }
         Message message = {
+            id: receivedMsg.correlationId,
             payload: receivedMsg.content
         };
         return message;
