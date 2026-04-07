@@ -247,9 +247,9 @@ isolated function constructDeliveryHeaders(store:Message message) returns map<st
     map<string|string[]>? metadata = message.metadata;
     if metadata is () {
         return {
-            MESSAGE_ID_HEADER: messageId
+            "x-hub-messageId": messageId
         };
     }
-    metadata[MESSAGE_ID_HEADER] = messageId;
+    metadata["x-hub-messageId"] = messageId;
     return metadata;
 }
