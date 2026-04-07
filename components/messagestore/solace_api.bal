@@ -379,7 +379,7 @@ isolated function extractSolaceSecureSocketConfig(solace:SecureSocket? config) r
 }
 
 isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns solace:KeyStore? {
-    boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
+    boolean mTlsEnabled = os:getEnv("ENABLE_MSGSTORE_MTLS") == "true";
     if !mTlsEnabled {
         log:printDebug("[Solace MessageStore] Ignoring keystore configurations as mTLS is disabled for Solace");
         return;
@@ -432,7 +432,7 @@ isolated function extractSolaceAdminSecureSocketConfig(http:ClientSecureSocket? 
 }
 
 isolated function extractSolaceAdminKeystoreConfig(crypto:KeyStore|http:CertKey? 'key) returns crypto:KeyStore|http:CertKey? {
-    boolean mTlsEnabled = os:getEnv("ENABLE_SOLACE_MTLS") == "true";
+    boolean mTlsEnabled = os:getEnv("ENABLE_MSGSTORE_MTLS") == "true";
     if !mTlsEnabled {
         log:printDebug("[Solace MessageStore Admin] Ignoring keystore configurations as mTLS is disabled for Solace");
         return;
