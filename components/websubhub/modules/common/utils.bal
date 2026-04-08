@@ -53,7 +53,7 @@ public isolated function logRecoverableError(string msg, error? 'error = (), *lo
 # + callback - Callback endpoint to which the content is delivered
 # + msgId - Optional message identifier for tracking the delivery
 public isolated function logContentDelivery(string topic, string callback, string? msgId) {
-    string constructedMsgId = msgId is string ? msgId : "[No Message Id]";
+    string constructedMsgId = msgId ?: "[No Message Id]";
     log:printDebug("Message delivered", topic = topic, callback = callback, messageId = constructedMsgId);
 }
 
