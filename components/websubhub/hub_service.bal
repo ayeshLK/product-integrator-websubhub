@@ -25,6 +25,8 @@ import ballerina/log;
 import ballerina/time;
 import ballerina/websubhub;
 
+const MESSAGE_ID_HEADER = "x-hub-messageId";
+
 http:Service healthCheckService = service object {
     resource function get .() returns http:Ok {
         return {
@@ -272,8 +274,9 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
             topicAvailable = registeredTopicsCache.hasKey(msg.hubTopic);
         }
         if topicAvailable {
-            map<string[]> messageHeaders = getHeadersMap(headers);
-            error? errorResponse = persist:addUpdateMessage(msg.hubTopic, msg, messageHeaders);
+            string? messageId = getMessageId(headers);
+            map<string[]> metadata = getMetadata(headers);
+            error? errorResponse = persist:addUpdateMessage(msg.hubTopic, msg, metadata, messageId);
             if errorResponse is websubhub:UpdateMessageError {
                 return errorResponse;
             } else if errorResponse is error {
@@ -288,9 +291,26 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
     }
 };
 
-isolated function getHeadersMap(http:Headers httpHeaders) returns map<string[]> {
+isolated function getMessageId(http:Headers httpHeaders) returns string? {
+    if !httpHeaders.hasHeader(MESSAGE_ID_HEADER) {
+        return;
+    }
+
+    var msgId = httpHeaders.getHeader(MESSAGE_ID_HEADER);
+    // safe to ingore the error as here we are retrieving only the available headers
+    if msgId is error {
+        return;
+    }
+    return msgId;
+}
+
+isolated function getMetadata(http:Headers httpHeaders) returns map<string[]> {
     map<string[]> headers = {};
     foreach string headerName in httpHeaders.getHeaderNames() {
+        // exclude the messageId header as it will be dealt with separately
+        if headerName == MESSAGE_ID_HEADER {
+            continue;
+        }
         var headerValues = httpHeaders.getHeaders(headerName);
         // safe to ingore the error as here we are retrieving only the available headers
         if headerValues is error {

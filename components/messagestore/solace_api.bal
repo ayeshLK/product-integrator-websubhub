@@ -45,7 +45,10 @@ isolated client class SolaceProducer {
         // todo: Setting properties will throw an error, hence ignoring setting properties for now
         check self.producer->send(
             {topicName: topic},
-            {payload: message.payload}
+            {
+                applicationMessageId: message.id, 
+                payload: message.payload
+            }
         );
     }
 
@@ -86,6 +89,7 @@ isolated client class SolaceConsumer {
             return;
         }
         Message message = {
+            id: receivedMsg.applicationMessageId,
             payload: receivedMsg.payload
         };
         message[ORIGINAL_SOLACE_MSG] = receivedMsg;

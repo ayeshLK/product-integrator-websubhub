@@ -121,6 +121,7 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
                 check consumerEp->nack(message);
                 check result;
             } else {
+                common:logContentDelivery(topic, subscription.hubCallback, message.id);
                 check consumerEp->ack(message);
             }
         }
@@ -232,7 +233,23 @@ isolated function constructContentDistMsg(store:Message message) returns websubh
     websubhub:ContentDistributionMessage distributionMsg = {
         content: payload,
         contentType: mime:APPLICATION_JSON,
-        headers: message.metadata
+        headers: constructDeliveryHeaders(message)
     };
     return distributionMsg;
+}
+
+isolated function constructDeliveryHeaders(store:Message message) returns map<string|string[]>? {
+    string? messageId = message.id;
+    if messageId is () {
+        return message.metadata;
+    }
+
+    map<string|string[]>? metadata = message.metadata;
+    if metadata is () {
+        return {
+            "x-hub-messageId": messageId
+        };
+    }
+    metadata["x-hub-messageId"] = messageId;
+    return metadata;
 }

@@ -55,14 +55,14 @@ isolated function updateHubState(StateUpdateEvent message) returns error? {
     }
 }
 
-public isolated function addUpdateMessage(string topicName, websubhub:UpdateMessage message, map<string|string[]>? metadata = ())
+public isolated function addUpdateMessage(string topicName, websubhub:UpdateMessage message, map<string|string[]>? metadata = (), string? messageId = ())
     returns error? {
     json jsonData = <json>message.content;
     byte[] payload = jsonData.toJsonString().toBytes();
-    check produceMessage(topicName, payload, metadata);
+    check produceMessage(topicName, payload, metadata, messageId);
 }
 
-isolated function produceMessage(string topic, byte[] payload, map<string|string[]>? metadata = ()) returns error? {
-    store:Message message = {payload, metadata};
+isolated function produceMessage(string topic, byte[] payload, map<string|string[]>? metadata = (), string? messageId = ()) returns error? {
+    store:Message message = {id: messageId, payload, metadata};
     return (check conn:getMessageProducer(topic))->send(topic, message);
 }
