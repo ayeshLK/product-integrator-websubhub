@@ -65,7 +65,7 @@ isolated client class SolaceConsumer {
     private final solace:MessageConsumer consumer;
     private final readonly & SolaceConsumerConfig config;
 
-    isolated function init(SolaceConfig config, string queueName, boolean autoAck = true) returns error? {
+    isolated function init(SolaceConfig config, string queueName) returns error? {
 
         solace:ConsumerConfiguration consumerConfig = {
             vpnName: config.messageVpn,
@@ -76,7 +76,7 @@ isolated client class SolaceConsumer {
             retryConfig: config.retryConfig,
             subscriptionConfig: {
                 queueName,
-                ackMode: autoAck ? solace:AUTO_ACK : solace:CLIENT_ACK
+                ackMode: solace:CLIENT_ACK
             }
         };
         self.consumer = check new (config.url, consumerConfig);
@@ -486,9 +486,8 @@ isolated function getSecureStoreFromEnv(string storePathKey, string storePasswor
 # + autoAck - A flag to enable or disable automatic message acknowledgement
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createSolaceConsumer(SolaceConfig config, string queueName, boolean autoAck = true,
-        record {} meta = {}) returns Consumer|error {
-    return new SolaceConsumer(config, queueName, autoAck);
+public isolated function createSolaceConsumer(string queueName, SolaceConfig config, record {} meta = {}) returns Consumer|error {
+    return new SolaceConsumer(config, queueName);
 }
 
 # Initialize a administrator for Solace message store.

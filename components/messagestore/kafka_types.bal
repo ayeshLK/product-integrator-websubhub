@@ -62,6 +62,8 @@ public type KafkaConsumerConfig record {|
     # The dead-letter topic to which unprocessable messages should be forwarded.
     # If not configured, dead-lettering is disabled for this consumer.
     string deadLetterTopic?;
+    # Offset reset strategy if no initial offset
+    kafka:OffsetResetMethod offsetReset?;
 |};
 
 // Internal record to data-bind the Kafka consumer record

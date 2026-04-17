@@ -19,7 +19,11 @@
 # + clientId - The unique client Id or name 
 # + store - The message store configurations
 # + return - A `store:Producer` for a specific message store, or else return an `error` if the operation fails
-public isolated function createProducer(string clientId, record {|KafkaConfig kafka?; SolaceConfig solace?; JmsConfig jms?;|} store) returns Producer|error {
+public isolated function createProducer(
+        string clientId,
+        record {|KafkaConfig kafka?; SolaceConfig solace?; JmsConfig jms?;|} store
+) returns Producer|error {
+
     var {kafka, solace, jms} = store;
     if kafka is KafkaConfig {
         return new KafkaProducer(clientId, kafka);
@@ -31,4 +35,31 @@ public isolated function createProducer(string clientId, record {|KafkaConfig ka
         return new JmsProducer(clientId, jms);
     }
     return error("Error occurred while reading the message store configurations when creating the store producer");
+}
+
+# Initialize a consumer for a specific message store.
+#
+# + topic - The topic from which the consumer should received events for
+# + defaultConsumerId - The default consumer Id which is associated with the user. This configuration will have different semantics for different message stores
+# + store - The message store configurations
+# + meta - The meta data required to resolve the consumer configurations
+# + return - A `store:Consumer` for a specific message store, or else return an `error` if the operation fails
+public isolated function createConsumer(
+        string topic,
+        string defaultConsumerId,
+        record {|KafkaConfig kafka?; SolaceConfig solace?; JmsConfig jms?;|} store,
+        record {} meta = {}
+) returns Consumer|error {
+
+    var {kafka, solace, jms} = store;
+    if kafka is KafkaConfig {
+        return createKafkaConsumer(defaultConsumerId, topic, kafka, meta);
+    }
+    if solace is SolaceConfig {
+        return createSolaceConsumer(defaultConsumerId, solace, meta);
+    }
+    if jms is JmsConfig {
+        return createJmsConsumer(topic, defaultConsumerId, jms, meta);
+    }
+    return error("Error occurred while reading the message store configurations when creating the store consumer");
 }

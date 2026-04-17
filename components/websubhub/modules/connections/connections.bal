@@ -15,8 +15,10 @@
 // under the License.
 
 import websubhub.admin;
+import websubhub.common;
 import websubhub.config;
 
+import ballerina/lang.value;
 import ballerina/websubhub;
 
 import wso2/messagestore as store;
@@ -35,30 +37,7 @@ public final store:Consumer websubEventsConsumer = check initWebSubEventsConsume
 function initWebSubEventsConsumer() returns store:Consumer|error {
     string websubEventsConsumerId = string `${config:state.events.consumerIdPrefix}-${config:serverId}`;
     check admin:createWebSubEventsSubscription(config:state.events.topic, websubEventsConsumerId);
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return store:createSolaceConsumer(
-                solace,
-                websubEventsConsumerId,
-                false
-        );
-    }
-    if jms is store:JmsConfig {
-        return store:createJmsConsumer(
-                jms,
-                config:state.events.topic,
-                websubEventsConsumerId
-        );
-    }
-    if kafka is store:KafkaConfig {
-        return store:createKafkaConsumer(
-                kafka,
-                websubEventsConsumerId,
-                config:state.events.topic,
-                autoCommit = false
-        );
-    }
-    return error("Error occurred while reading the message store configurations when creating the store consumer");
+    return store:createConsumer(config:state.events.topic, websubEventsConsumerId, config:store);
 }
 
 # Initialize a `store:Consumer` for a WebSub subscriber.
@@ -66,17 +45,19 @@ function initWebSubEventsConsumer() returns store:Consumer|error {
 # + subscription - The WebSub subscriber details
 # + return - A `store:Consumer` for the message store, or else return an `error` if the operation fails
 public isolated function createConsumer(websubhub:VerifiedSubscription subscription) returns store:Consumer|error {
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return createSolaceConsumerForSubscriber(solace, subscription);
+    string topic = subscription.hubTopic;
+    string defaultConsumerId = check constructDefaultConsumerId(subscription);
+    return store:createConsumer(topic, defaultConsumerId, config:store);
+}
+
+isolated function constructDefaultConsumerId(websubhub:VerifiedSubscription subscription) returns string|error {
+    string timestamp = check value:ensureType(subscription[common:SUBSCRIPTION_TIMESTAMP]);
+    string subscriberId = string `${subscription.hubTopic}___${subscription.hubCallback}___${timestamp}`;
+    int constructedId = 0;
+    foreach var [idx, val] in subscriberId.toCodePointInts().enumerate() {
+        constructedId += idx * val;
     }
-    if jms is store:JmsConfig {
-        return createJmsConsumerForSubscriber(jms, subscription);
-    }
-    if kafka is store:KafkaConfig {
-        return createKafkaConsumerForSubscriber(kafka, subscription);
-    }
-    return error("Error occurred while reading the message store configurations when creating the store consumer");
+    return string `consumer-${constructedId}`;
 }
 
 # Retrieves a message producer per topic.

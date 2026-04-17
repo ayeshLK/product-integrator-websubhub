@@ -53,13 +53,12 @@ isolated client class KafkaConsumer {
 
     private KafkaConsumerRecord[] messageBatch = [];
 
-    isolated function init(KafkaConfig config, string groupId, string topic, boolean autoCommit = true,
-            kafka:OffsetResetMethod? offsetReset = (), int[]? partitions = (), string? dlqTopic = ()) returns error? {
+    isolated function init(KafkaConfig config, string groupId, string topic, int[]? partitions = (), string? dlqTopic = ()) returns error? {
 
         kafka:ConsumerConfiguration consumerConfig = {
             groupId,
-            offsetReset,
-            autoCommit,
+            offsetReset: config.consumer.offsetReset,
+            autoCommit: false,
             maxPollRecords: config.consumer.maxPollRecords,
             secureSocket: config.secureSocket,
             securityProtocol: config.securityProtocol
@@ -189,17 +188,14 @@ isolated function initKafkaDlqProducer(KafkaConfig config) returns error? {
 
 # Initialize a consumer for Kafka message store.
 #
-# + config - The Kafka connection configurations
 # + groupId - The default Kafka consumer group to which this consumer should belong to
 # + topic - The Kafka topic to which the consumer should received events for
-# + autoCommit - The flag to enable auto-commit offsets  
-# + offsetReset - The offset reset strategy if no initial offset
+# + config - The Kafka connection configurations
 # + meta - The meta data required to resolve the Kafka consumer group and topic partitions, 
 # if the user provided a `meta` information it would have a higher priority than the `groupId` provided. 
 # As of now only consumer-group and topic-partitions can be provided as `meta`
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createKafkaConsumer(KafkaConfig config, string groupId, string topic, boolean autoCommit = true,
-        kafka:OffsetResetMethod? offsetReset = (), record {} meta = {}) returns Consumer|error {
+public isolated function createKafkaConsumer(string groupId, string topic, KafkaConfig config, record {} meta = {}) returns Consumer|error {
 
     string consumerGroup = check resolveConsumerGroup(groupId, meta);
     int[]? topicPartitions = check resolveTopicPartitions(meta);
@@ -207,7 +203,7 @@ public isolated function createKafkaConsumer(KafkaConfig config, string groupId,
     if dlqTopic is string {
         check initKafkaDlqProducer(config);
     }
-    return new KafkaConsumer(config, consumerGroup, topic, autoCommit, offsetReset, topicPartitions, dlqTopic);
+    return new KafkaConsumer(config, consumerGroup, topic, topicPartitions, dlqTopic);
 }
 
 const string CONSUMER_GROUP = "consumerGroup";
