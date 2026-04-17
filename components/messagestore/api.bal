@@ -17,6 +17,8 @@
 import ballerina/lang.value;
 import ballerina/log;
 
+public type StoreConfig KafkaConfig|JmsConfig|SolaceConfig;
+
 # Represents a message published to a message store.
 public type Message record {
     # The message Id

@@ -21,8 +21,16 @@ isolated client class JmsProducer {
 
     private final jms:MessageProducer producer;
 
-    isolated function init(jms:Connection connection) returns error? {
-
+    isolated function init(string clientName, JmsConfig config) returns error? {
+        jms:ConnectionConfiguration connectionConfig = {
+            initialContextFactory: config.initialContextFactory,
+            providerUrl: config.providerUrl,
+            connectionFactoryName: config.connectionFactoryName,
+            username: config.username,
+            password: config.password,
+            properties: config.properties
+        };
+        jms:Connection connection = check new (connectionConfig);
         jms:Session session = check connection->createSession();
         self.producer = check session.createProducer();
     }
@@ -109,26 +117,8 @@ isolated function initJmsDlqProducer(JmsConfig config) returns error? {
         }
     }
     lock {
-        dlqProducer = check createJmsProducer(config.cloneReadOnly(), "dlq-message-producer");
+        dlqProducer = check new JmsProducer("dlq-message-producer", config.cloneReadOnly());
     }
-}
-
-# Initialize a producer for JMS message store.
-#
-# + config - The JMS connection configurations
-# + clientName - The unique client name to use to identify the connection
-# + return - A `store:Producer` for a JMS message store, or else return an `error` if the operation fails
-public isolated function createJmsProducer(JmsConfig config, string clientName) returns Producer|error {
-    jms:ConnectionConfiguration connectionConfig = {
-        initialContextFactory: config.initialContextFactory,
-        providerUrl: config.providerUrl,
-        connectionFactoryName: config.connectionFactoryName,
-        username: config.username,
-        password: config.password,
-        properties: config.properties
-    };
-    jms:Connection connection = check new (connectionConfig);
-    return new JmsProducer(connection);
 }
 
 # Initialize a consumer for JMS message store.

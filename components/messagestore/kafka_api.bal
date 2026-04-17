@@ -183,17 +183,8 @@ isolated function initKafkaDlqProducer(KafkaConfig config) returns error? {
         }
     }
     lock {
-        dlqProducer = check createKafkaProducer(config.cloneReadOnly(), "dlq-message-producer");
+        dlqProducer = check new KafkaProducer("dlq-message-producer", config.cloneReadOnly());
     }
-}
-
-# Initialize a producer for Kafka message store.
-#
-# + config - The Kafka connection configurations
-# + clientId - The client Id
-# + return - A `store:Producer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createKafkaProducer(KafkaConfig config, string clientId) returns Producer|error {
-    return new KafkaProducer(clientId, config);
 }
 
 # Initialize a consumer for Kafka message store.

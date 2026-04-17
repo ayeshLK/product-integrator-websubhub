@@ -26,17 +26,7 @@ public final store:Producer statePersistProducer = check initStatePersistProduce
 
 function initStatePersistProducer() returns store:Producer|error {
     string clientId = string `consolidated-state-persist-${uuid:createRandomUuid()}`;
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return store:createSolaceProducer(solace, clientId);
-    }
-    if jms is store:JmsConfig {
-        return store:createJmsProducer(jms, clientId);
-    }
-    if kafka is store:KafkaConfig {
-        return store:createKafkaProducer(kafka, clientId);
-    }
-    return error("Error occurred while reading the message store configurations when creating the store producer");
+    return store:createProducer(clientId, config:store);
 }
 
 // Consumer which reads the persisted topic-registration/topic-deregistration/subscription/unsubscription events

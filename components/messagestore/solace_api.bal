@@ -46,9 +46,9 @@ isolated client class SolaceProducer {
         check self.producer->send(
             {topicName: topic},
             {
-                applicationMessageId: message.id, 
-                payload: message.payload
-            }
+            applicationMessageId: message.id,
+            payload: message.payload
+        }
         );
     }
 
@@ -477,15 +477,6 @@ isolated function getSecureStoreFromEnv(string storePathKey, string storePasswor
         return;
     }
     return {path, password};
-}
-
-# Initialize a producer for Solace message store.
-#
-# + config - The Solace connection configurations  
-# + clientName - The unique client name to use to identify the connection
-# + return - A `store:Producer` for Solace message store, or else return an `error` if the operation fails
-public isolated function createSolaceProducer(SolaceConfig config, string clientName) returns Producer|error {
-    return new SolaceProducer(clientName, config);
 }
 
 # Initialize a consumer for Solace message store.
