@@ -63,3 +63,15 @@ public isolated function createConsumer(
     }
     return error("Error occurred while reading the message store configurations when creating the store consumer");
 }
+
+# Initialize a administrator for a specific message store.
+#
+# + store - The message store configurations
+# + return - A `store:Administrator` for a message store, or else return an `error` if the operation fails
+public isolated function createAdministrator(record {|KafkaConfig kafka?; SolaceConfig solace?; JmsConfig jms?;|} store) returns Administrator|error {
+    var {kafka, solace, jms} = store;
+    if solace is SolaceConfig {
+        return new SolaceAdministrator(solace);
+    }
+    return new Administrator();
+}

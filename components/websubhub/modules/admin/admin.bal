@@ -24,7 +24,7 @@ import ballerina/websubhub;
 
 import wso2/messagestore as store;
 
-final store:Administrator administrator = check createAdministrator();
+final store:Administrator administrator = check store:createAdministrator(config:store);
 
 public isolated function createWebSubEventsSubscription(string topic, string consumerId) returns error? {
     error? result = administrator->createSubscription(topic, consumerId);
@@ -33,14 +33,6 @@ public isolated function createWebSubEventsSubscription(string topic, string con
         return;
     }
     return result;
-}
-
-isolated function createAdministrator() returns store:Administrator|error {
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return store:createSolaceAdministrator(solace);
-    }
-    return new store:Administrator();
 }
 
 public isolated function createTopic(websubhub:TopicRegistration topicRegistration)

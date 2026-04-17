@@ -20,7 +20,7 @@ import ballerina/log;
 
 import wso2/messagestore as store;
 
-final store:Administrator administrator = check createAdministrator();
+final store:Administrator administrator = check store:createAdministrator(config:store);
 
 isolated function init() returns error? {
     // Create topic and subscription for state snapshot consumer
@@ -47,12 +47,4 @@ isolated function createStateEventsSubscription() returns error? {
         return;
     }
     return result;
-}
-
-isolated function createAdministrator() returns store:Administrator|error {
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return store:createSolaceAdministrator(solace);
-    }
-    return new store:Administrator();
 }

@@ -195,7 +195,7 @@ isolated function initKafkaDlqProducer(KafkaConfig config) returns error? {
 # if the user provided a `meta` information it would have a higher priority than the `groupId` provided. 
 # As of now only consumer-group and topic-partitions can be provided as `meta`
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createKafkaConsumer(string groupId, string topic, KafkaConfig config, record {} meta = {}) returns Consumer|error {
+isolated function createKafkaConsumer(string groupId, string topic, KafkaConfig config, record {} meta = {}) returns Consumer|error {
 
     string consumerGroup = check resolveConsumerGroup(groupId, meta);
     int[]? topicPartitions = check resolveTopicPartitions(meta);

@@ -483,17 +483,8 @@ isolated function getSecureStoreFromEnv(string storePathKey, string storePasswor
 #
 # + config - The Solace connection configurations
 # + queueName - The queue from which the consumer is receiving messages
-# + autoAck - A flag to enable or disable automatic message acknowledgement
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createSolaceConsumer(string queueName, SolaceConfig config, record {} meta = {}) returns Consumer|error {
+isolated function createSolaceConsumer(string queueName, SolaceConfig config, record {} meta = {}) returns Consumer|error {
     return new SolaceConsumer(config, queueName);
-}
-
-# Initialize a administrator for Solace message store.
-#
-# + config - The Solace connection configurations
-# + return - A `store:Administrator` for Solace message store, or else return an `error` if the operation fails
-public isolated function createSolaceAdministrator(SolaceConfig config) returns Administrator|error {
-    return new SolaceAdministrator(config);
 }

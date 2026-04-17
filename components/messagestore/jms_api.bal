@@ -128,7 +128,7 @@ isolated function initJmsDlqProducer(JmsConfig config) returns error? {
 # + config - The JMS connection configurations
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createJmsConsumer(string topic, string subscriberName, JmsConfig config,
+isolated function createJmsConsumer(string topic, string subscriberName, JmsConfig config,
         record {} meta = {}) returns Consumer|error {
     jms:ConnectionConfiguration connectionConfig = {
         initialContextFactory: config.initialContextFactory,
