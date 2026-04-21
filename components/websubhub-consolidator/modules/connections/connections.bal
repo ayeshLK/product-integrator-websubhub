@@ -26,79 +26,21 @@ public final store:Producer statePersistProducer = check initStatePersistProduce
 
 function initStatePersistProducer() returns store:Producer|error {
     string clientId = string `consolidated-state-persist-${uuid:createRandomUuid()}`;
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return store:createSolaceProducer(solace, clientId);
-    }
-    if jms is store:JmsConfig {
-        return store:createJmsProducer(jms, clientId);
-    }
-    if kafka is store:KafkaConfig {
-        return store:createKafkaProducer(kafka, clientId);
-    }
-    return error("Error occurred while reading the message store configurations when creating the store producer");
+    return store:createProducer(clientId, config:store);
 }
 
 // Consumer which reads the persisted topic-registration/topic-deregistration/subscription/unsubscription events
 public final store:Consumer websubEventsConsumer = check initWebSubEventsConsumer();
 
 function initWebSubEventsConsumer() returns store:Consumer|error {
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return store:createSolaceConsumer(
-                solace,
-                config:state.events.consumerId,
-                false
-        );
-    }
-    if jms is store:JmsConfig {
-        return store:createJmsConsumer(
-                jms,
-                config:state.events.topic,
-                config:state.events.consumerId
-        );
-    }
-    if kafka is store:KafkaConfig {
-        return store:createKafkaConsumer(
-                kafka,
-                config:state.events.consumerId,
-                config:state.events.topic,
-                autoCommit = false,
-                offsetReset = "earliest"
-        );
-    }
-    return error("Error occurred while reading the message store configurations when creating the store consumer");
+    return store:createConsumer(config:state.events.topic, config:state.events.consumerId, config:store);
 }
 
 # Initializes the WebSub event snapshot consumer.
 #
 # + return - A `store:Consumer` for the message store, or else return an `error` if the operation fails
 public isolated function initWebSubEventSnapshotConsumer() returns store:Consumer|error {
-    var {kafka, solace, jms} = config:store;
-    if solace is store:SolaceConfig {
-        return store:createSolaceConsumer(
-                solace,
-                config:state.snapshot.consumerId,
-                false
-        );
-    }
-    if jms is store:JmsConfig {
-        return store:createJmsConsumer(
-                jms,
-                config:state.snapshot.topic,
-                config:state.snapshot.consumerId
-        );
-    }
-    if kafka is store:KafkaConfig {
-        return store:createKafkaConsumer(
-                kafka,
-                config:state.snapshot.consumerId,
-                config:state.snapshot.topic,
-                autoCommit = false,
-                offsetReset = "earliest"
-        );
-    }
-    return error("Error occurred while reading the message store configurations when creating the store consumer");
+    return store:createConsumer(config:state.snapshot.topic, config:state.snapshot.consumerId, config:store);
 }
 
 # Retrieves a message producer per topic.

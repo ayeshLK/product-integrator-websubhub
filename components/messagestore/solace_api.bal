@@ -46,9 +46,9 @@ isolated client class SolaceProducer {
         check self.producer->send(
             {topicName: topic},
             {
-                applicationMessageId: message.id, 
-                payload: message.payload
-            }
+            applicationMessageId: message.id,
+            payload: message.payload
+        }
         );
     }
 
@@ -65,7 +65,7 @@ isolated client class SolaceConsumer {
     private final solace:MessageConsumer consumer;
     private final readonly & SolaceConsumerConfig config;
 
-    isolated function init(SolaceConfig config, string queueName, boolean autoAck = true) returns error? {
+    isolated function init(SolaceConfig config, string queueName) returns error? {
 
         solace:ConsumerConfiguration consumerConfig = {
             vpnName: config.messageVpn,
@@ -76,7 +76,7 @@ isolated client class SolaceConsumer {
             retryConfig: config.retryConfig,
             subscriptionConfig: {
                 queueName,
-                ackMode: autoAck ? solace:AUTO_ACK : solace:CLIENT_ACK
+                ackMode: solace:CLIENT_ACK
             }
         };
         self.consumer = check new (config.url, consumerConfig);
@@ -479,31 +479,12 @@ isolated function getSecureStoreFromEnv(string storePathKey, string storePasswor
     return {path, password};
 }
 
-# Initialize a producer for Solace message store.
-#
-# + config - The Solace connection configurations  
-# + clientName - The unique client name to use to identify the connection
-# + return - A `store:Producer` for Solace message store, or else return an `error` if the operation fails
-public isolated function createSolaceProducer(SolaceConfig config, string clientName) returns Producer|error {
-    return new SolaceProducer(clientName, config);
-}
-
 # Initialize a consumer for Solace message store.
 #
 # + config - The Solace connection configurations
 # + queueName - The queue from which the consumer is receiving messages
-# + autoAck - A flag to enable or disable automatic message acknowledgement
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createSolaceConsumer(SolaceConfig config, string queueName, boolean autoAck = true,
-        record {} meta = {}) returns Consumer|error {
-    return new SolaceConsumer(config, queueName, autoAck);
-}
-
-# Initialize a administrator for Solace message store.
-#
-# + config - The Solace connection configurations
-# + return - A `store:Administrator` for Solace message store, or else return an `error` if the operation fails
-public isolated function createSolaceAdministrator(SolaceConfig config) returns Administrator|error {
-    return new SolaceAdministrator(config);
+isolated function createSolaceConsumer(string queueName, SolaceConfig config, record {} meta = {}) returns Consumer|error {
+    return new SolaceConsumer(config, queueName);
 }
