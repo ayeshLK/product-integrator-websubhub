@@ -91,7 +91,7 @@ isolated function constructConsumerName(string topic, string hubCallback, string
     string subscriberId = string `${topic}___${hubCallback}___${timestamp}`;
     int constructedId = 0;
     foreach var [idx, val] in subscriberId.toCodePointInts().enumerate() {
-        constructedId += idx * val;
+        constructedId += (idx + 1) * val;
     }
     return string `consumer-${constructedId}`;
 }
