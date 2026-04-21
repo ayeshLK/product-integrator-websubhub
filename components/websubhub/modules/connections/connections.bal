@@ -55,7 +55,7 @@ isolated function constructDefaultConsumerId(websubhub:VerifiedSubscription subs
     string subscriberId = string `${subscription.hubTopic}___${subscription.hubCallback}___${timestamp}`;
     int constructedId = 0;
     foreach var [idx, val] in subscriberId.toCodePointInts().enumerate() {
-        constructedId += idx * val;
+        constructedId += (idx + 1) * val;
     }
     return string `consumer-${constructedId}`;
 }
