@@ -45,10 +45,7 @@ isolated client class SolaceProducer {
         // todo: Setting properties will throw an error, hence ignoring setting properties for now
         check self.producer->send(
             {topicName: topic},
-            {
-            applicationMessageId: message.id,
-            payload: message.payload
-        }
+            {applicationMessageId: message.id, payload: message.payload}
         );
     }
 

@@ -18,6 +18,8 @@ import ballerina/lang.value;
 import ballerina/log;
 import ballerinax/kafka;
 
+const MESSAGE_ID_HEADER = "x-hub-messageId";
+
 isolated client class KafkaProducer {
     *Producer;
 
@@ -35,13 +37,29 @@ isolated client class KafkaProducer {
     }
 
     isolated remote function send(string topic, Message message) returns error? {
-        check self.producer->send({topic, value: message.payload, headers: message.metadata});
+        map<string|string[]>? headers = constructKafkaHeaders(message.id, message.metadata);
+        check self.producer->send({topic, value: message.payload, headers});
         return self.producer->'flush();
     }
 
     isolated remote function close() returns error? {
         return self.producer->close();
     }
+}
+
+isolated function constructKafkaHeaders(string? msgId, map<string|string[]>? headers) returns map<string|string[]>? {
+    if headers is () {
+        if msgId is string {
+            return {
+                "x-hub-messageId": msgId
+            };
+        }
+        return;
+    }
+    if msgId is string {
+        headers["x-hub-messageId"] = msgId;
+    }
+    return headers;
 }
 
 isolated client class KafkaConsumer {
@@ -133,6 +151,8 @@ isolated client class KafkaConsumer {
         }
         // TODO: Temporary disabling kafka-header mapping as there is bug which crashes the `store:Consumer` when retrieving headers
         return {
+            id: extractKafkaMessageId(current.headers),
+            metadata: extractKafkaHeaders(current.headers),
             payload: current.value
         };
     }
@@ -173,6 +193,34 @@ isolated client class KafkaConsumer {
     isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
         return self.consumer->close(self.config.gracefulClosePeriod);
     }
+}
+
+isolated function extractKafkaMessageId(map<string|string[]>? headers) returns string? {
+    if headers is () {
+        return;
+    }
+    string|string[]? messageId = headers[MESSAGE_ID_HEADER];
+    if messageId is string {
+        return messageId;
+    }
+    if messageId is string[] {
+        return messageId[0];
+    }
+    return;
+}
+
+isolated function extractKafkaHeaders(map<string|string[]>? headers) returns map<string|string[]>? {
+    if headers is () {
+        return;
+    }
+    map<string|string[]> updated = {};
+    foreach var [k, v] in headers.entries() {
+        if k == MESSAGE_ID_HEADER {
+            continue;
+        }
+        updated[k] = v;
+    }
+    return updated;
 }
 
 isolated function initKafkaDlqProducer(KafkaConfig config) returns error? {
