@@ -317,6 +317,7 @@ isolated client class SolaceAdministrator {
                 if details.statusCode == http:STATUS_BAD_REQUEST {
                     record {semp:SempMeta meta;} payload = check details.body.cloneWithType();
                     if payload.meta.'error?.status == "NOT_FOUND" {
+                        log:printDebug(string `No subscriptions found or queue [${queueName}] does not exist`);
                         // If the topic or VPN not found return nil, so that unsubscription could be successful when there is unexpected queue deletion
                         return;
                     }
