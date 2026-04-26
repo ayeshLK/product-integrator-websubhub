@@ -183,9 +183,8 @@ isolated client class SolaceAdministrator {
 
         semp:MsgVpnQueueSubscription[] filteredSubscriptions = subscriptions.filter(a => a.subscriptionTopic === topic);
         if filteredSubscriptions.length() === 0 {
-            string errorMsg = string `
-                Subscription not found for the topic [${topic}] in Solace queue [${queueName}] in message-vpn [${self.messageVpn}]`;
-            return error SubscriptionNotFound(errorMsg);
+            // If the topic-subscription is not-available return nil so that unsubscription not fail
+            return;
         }
 
         _ = check self.removeTopicSubscription(queueName, topic);
@@ -352,10 +351,24 @@ isolated client class SolaceAdministrator {
     }
 
     isolated function deleteQueue(string queueName) returns error? {
-        _ = check self.administrator->deleteMsgVpnQueue(
+        var response = self.administrator->deleteMsgVpnQueue(
             msgVpnName = self.messageVpn,
             queueName = queueName
         );
+        if response is http:ClientRequestError {
+            http:Detail details = response.detail();
+            if details.statusCode == http:STATUS_BAD_REQUEST {
+                record {semp:SempMeta meta;} payload = check details.body.cloneWithType();
+                if payload.meta.'error?.status == "NOT_FOUND" {
+                    return;
+                }
+            }
+            return response;
+        }
+
+        if response is error {
+            return response;
+        }
     }
 
     isolated remote function close() returns error? {
