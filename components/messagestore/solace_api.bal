@@ -176,7 +176,11 @@ isolated client class SolaceAdministrator {
     }
 
     isolated remote function deleteSubscription(string topic, string queueName, record {} meta = {}) returns SubscriptionNotFound|error? {
-        semp:MsgVpnQueueSubscription[] subscriptions = check self.retrieveTopicSubscriptions(queueName);
+        semp:MsgVpnQueueSubscription[]? subscriptions = check self.retrieveTopicSubscriptions(queueName);
+        if subscriptions is () {
+            return;
+        }
+
         semp:MsgVpnQueueSubscription[] filteredSubscriptions = subscriptions.filter(a => a.subscriptionTopic === topic);
         if filteredSubscriptions.length() === 0 {
             string errorMsg = string `
@@ -288,7 +292,7 @@ isolated client class SolaceAdministrator {
         return response;
     }
 
-    isolated function retrieveTopicSubscriptions(string queueName) returns semp:MsgVpnQueueSubscription[]|error {
+    isolated function retrieveTopicSubscriptions(string queueName) returns semp:MsgVpnQueueSubscription[]|error? {
         string vpn = self.messageVpn;
         semp:MsgVpnQueueSubscription[] subscriptions = [];
         string? cursor = ();
@@ -313,9 +317,8 @@ isolated client class SolaceAdministrator {
                 if details.statusCode == http:STATUS_BAD_REQUEST {
                     record {semp:SempMeta meta;} payload = check details.body.cloneWithType();
                     if payload.meta.'error?.status == "NOT_FOUND" {
-                        return error SubscriptionNotFound(
-                        string `Could not find either the queue [${queueName}] or the vpn [${vpn}]`
-                        );
+                        // If the topic or VPN not found return nil, so that unsubscription could be successful when there is unexpected queue deletion
+                        return;
                     }
                 }
                 return response;
