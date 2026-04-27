@@ -90,7 +90,7 @@ System Requirements
    - Must support OAuth2 client credentials and JWKS endpoints
 
 6. To build WSO2 Integrator: WebSubHub from source:
-   - Ballerina SwanLake 2201.13.1
+   - Ballerina SwanLake 2201.13.3
    - Gradle 8.x or later
 
 
