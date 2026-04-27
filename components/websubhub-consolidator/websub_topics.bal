@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/log;
 import ballerina/websubhub;
 
 isolated map<websubhub:TopicRegistration> registeredTopicsCache = {};
@@ -27,6 +28,7 @@ isolated function refreshTopicCache(websubhub:TopicRegistration[] persistedTopic
 }
 
 isolated function processTopicRegistration(websubhub:TopicRegistration topicRegistration) returns error? {
+    log:printDebug("Topic registration request received", topic = topicRegistration.topic);
     lock {
         // add the topic if topic-registration event received
         registeredTopicsCache[topicRegistration.topic] = topicRegistration.cloneReadOnly();
@@ -35,6 +37,7 @@ isolated function processTopicRegistration(websubhub:TopicRegistration topicRegi
 }
 
 isolated function processTopicDeregistration(websubhub:TopicDeregistration topicDeregistration) returns error? {
+    log:printDebug("Topic deregistration request received", topic = topicDeregistration.topic);
     lock {
         // remove the topic if topic-deregistration event received
         _ = registeredTopicsCache.removeIfHasKey(topicDeregistration.topic);
