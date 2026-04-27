@@ -385,7 +385,7 @@ dependencies = [
 [[package]]
 org = "ballerinax"
 name = "kafka"
-version = "4.6.4"
+version = "4.6.5"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "jballerina.java"},

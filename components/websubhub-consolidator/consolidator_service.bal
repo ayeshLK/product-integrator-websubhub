@@ -63,6 +63,7 @@ isolated function consolidateSystemState() returns error? {
 isolated function processStateUpdateEvent(string persistedData) returns error? {
     json event = check value:fromJsonString(persistedData);
     string hubMode = check event.hubMode;
+    log:printDebug("Event received", 'type = hubMode, content = event);
     match hubMode {
         "register" => {
             websubhub:TopicRegistration topicRegistration = check event.fromJsonWithType();

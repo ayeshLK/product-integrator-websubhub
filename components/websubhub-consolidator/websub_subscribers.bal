@@ -17,6 +17,7 @@
 import websubhub.consolidator.common;
 
 import ballerina/lang.value;
+import ballerina/log;
 import ballerina/websubhub;
 
 isolated map<websubhub:VerifiedSubscription> subscribersCache = {};
@@ -41,6 +42,7 @@ isolated function refreshSubscribersCache(websubhub:VerifiedSubscription[] persi
 }
 
 isolated function processSubscription(websubhub:VerifiedSubscription subscription) returns error? {
+    log:printDebug("Subscription request received", topic = subscription.hubTopic, callback = subscription.hubCallback, status = subscription["status"] ?: "active");
     string subscriberId = common:generatedSubscriberId(subscription.hubTopic, subscription.hubCallback);
     lock {
         // add the subscriber if subscription event received
@@ -52,6 +54,7 @@ isolated function processSubscription(websubhub:VerifiedSubscription subscriptio
 }
 
 isolated function processUnsubscription(websubhub:VerifiedUnsubscription unsubscription) returns error? {
+    log:printDebug("Unsubscription request received", topic = unsubscription.hubTopic, callback = unsubscription.hubCallback);
     string subscriberId = common:generatedSubscriberId(unsubscription.hubTopic, unsubscription.hubCallback);
     lock {
         // remove the subscriber if the unsubscription event received
