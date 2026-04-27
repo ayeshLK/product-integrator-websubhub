@@ -40,8 +40,8 @@ isolated function processWebsubSubscriptionsSnapshotState(websubhub:VerifiedSubs
 }
 
 isolated function processSubscription(websubhub:VerifiedSubscription subscription) returns error? {
+    log:printDebug("Subscription event received", topic = subscription.hubTopic, callback = subscription.hubCallback);
     string subscriberId = common:generateSubscriberId(subscription.hubTopic, subscription.hubCallback);
-    log:printDebug(string `Subscription event received for the subscriber ${subscriberId}`);
     websubhub:VerifiedSubscription? existingSubscription = getSubscription(subscriberId);
     boolean isFreshSubscription = existingSubscription is ();
     boolean isRenewingStaleSubscription = false;
@@ -81,8 +81,9 @@ isolated function processSubscription(websubhub:VerifiedSubscription subscriptio
 }
 
 isolated function processUnsubscription(websubhub:VerifiedUnsubscription unsubscription) returns error? {
+    log:printDebug("Unsubscription event received, hence removing the subscriber from the internal state", 
+        topic = unsubscription.hubTopic, callback = unsubscription.hubCallback);
     string subscriberId = common:generateSubscriberId(unsubscription.hubTopic, unsubscription.hubCallback);
-    log:printDebug(string `Unsubscription event received for the subscriber ${subscriberId}, hence removing the subscriber from the internal state`);
     lock {
         _ = subscribersCache.removeIfHasKey(subscriberId);
     }
