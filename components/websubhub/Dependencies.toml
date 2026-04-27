@@ -399,7 +399,7 @@ dependencies = [
 [[package]]
 org = "wso2"
 name = "websubhub"
-version = "1.0.2"
+version = "1.0.3-SNAPSHOT"
 dependencies = [
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "jwt"},
