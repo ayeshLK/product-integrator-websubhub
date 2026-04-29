@@ -80,3 +80,17 @@ public isolated function createAdministrator(Config store) returns api:Administr
     }
     return new api:Administrator();
 }
+
+# Validates the provided message store configuration.
+#
+# + store - The message store configuration to be validated
+# + return - An `error` if validation fails; otherwise `()` on success
+public isolated function validateConfig(Config store) returns error? {
+    int configured = 0;
+    configured += store.kafka is kafka:Config ? 1 : 0;
+    configured += store.solace is solace:Config ? 1 : 0;
+    configured += store.jms is jms:Config ? 1 : 0;
+    if configured != 1 {
+        return error("Exactly one message store backend must be configured");
+    }
+}

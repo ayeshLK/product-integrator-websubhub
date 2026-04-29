@@ -25,9 +25,16 @@ import ballerina/lang.runtime;
 import ballerina/lang.value;
 import ballerina/log;
 
+import wso2/messagestore as store;
 import wso2/messagestore.api as storeapi;
 
 public function main() returns error? {
+    error? validation = store:validateConfig(config:store);
+    if validation is error {
+        common:logFatalError("Message store configuration validation failed", validation);
+        return;
+    }
+
     // Initialize consolidator-service state
     error? stateSyncResult = syncSystemState();
     if stateSyncResult is error {
