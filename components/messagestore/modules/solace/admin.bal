@@ -358,14 +358,26 @@ isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQue
     if dcVal is boolean {
         payload.deliveryCountEnabled = dcVal;
     } else if dcVal is string {
-        payload.deliveryCountEnabled = dcVal == "true";
+        if dcVal == "true" || dcVal == "false" {
+            payload.deliveryCountEnabled = dcVal == "true";
+        } else {
+            return error(string `invalid meta value for '${META_DELIVERY_COUNT_ENABLED}': "${dcVal}", expected boolean or "true"/"false"`);
+        }
+    } else if dcVal !is () {
+        return error(string `invalid meta value for '${META_DELIVERY_COUNT_ENABLED}': expected boolean or string`);
     }
 
     anydata ttlVal = meta[META_RESPECT_TTL];
     if ttlVal is boolean {
         payload.respectTtlEnabled = ttlVal;
     } else if ttlVal is string {
-        payload.respectTtlEnabled = ttlVal == "true";
+        if ttlVal == "true" || ttlVal == "false" {
+            payload.respectTtlEnabled = ttlVal == "true";
+        } else {
+            return error(string `invalid meta value for '${META_RESPECT_TTL}': "${ttlVal}", expected boolean or "true"/"false"`);
+        }
+    } else if ttlVal !is () {
+        return error(string `invalid meta value for '${META_RESPECT_TTL}': expected boolean or string`);
     }
 
     anydata maxTtlVal = meta[META_MAX_TTL];
@@ -382,7 +394,13 @@ isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQue
     if redeliveryVal is boolean {
         payload.redeliveryEnabled = redeliveryVal;
     } else if redeliveryVal is string {
-        payload.redeliveryEnabled = redeliveryVal == "true";
+        if redeliveryVal == "true" || redeliveryVal == "false" {
+            payload.redeliveryEnabled = redeliveryVal == "true";
+        } else {
+            return error(string `invalid meta value for '${META_REDELIVERY_ENABLED}': "${redeliveryVal}", expected boolean or "true"/"false"`);
+        }
+    } else if redeliveryVal !is () {
+        return error(string `invalid meta value for '${META_REDELIVERY_ENABLED}': expected boolean or string`);
     }
 
     anydata maxCountVal = meta[META_REDELIVERY_MAX_COUNT];
