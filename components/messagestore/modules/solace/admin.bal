@@ -63,16 +63,16 @@ public isolated client class Administrator {
         self.queueConfig = config.queue.cloneReadOnly();
     }
 
-    isolated remote function createTopic(string topic, record {} meta = {}) returns api:TopicExists|error? {
+    isolated remote function createTopic(string topic, boolean systemTopic = false, record {} meta = {}) returns api:TopicExists|error? {
         return;
     }
 
-    isolated remote function deleteTopic(string topic, record {} meta = {}) returns api:TopicNotFound|error? {
+    isolated remote function deleteTopic(string topic, boolean systemTopic = false, record {} meta = {}) returns api:TopicNotFound|error? {
         return;
     }
 
-    isolated remote function createSubscription(string topic, string queueName, record {} meta = {}) returns api:SubscriptionExists|error? {
-        string effectiveQueueName = resolveQueueName(queueName, meta);
+    isolated remote function createSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionExists|error? {
+        string effectiveQueueName = systemSubscriber ? queueName: resolveQueueName(queueName, meta);
         string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
         log:printWarn("Creating topic subscription for ", topic = topic, queue = effectiveQueueName, meta = meta);
         semp:MsgVpnQueue|error queue = self.retrieveQueue(effectiveQueueName);
@@ -90,8 +90,8 @@ public isolated client class Administrator {
         _ = check self.addTopicSubscription(effectiveQueueName, topic);
     }
 
-    isolated remote function deleteSubscription(string topic, string queueName, record {} meta = {}) returns api:SubscriptionNotFound|error? {
-        string effectiveQueueName = resolveQueueName(queueName, meta);
+    isolated remote function deleteSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionNotFound|error? {
+        string effectiveQueueName = systemSubscriber ? queueName: resolveQueueName(queueName, meta);
         string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
         semp:MsgVpnQueueSubscription[]? subscriptions = check self.retrieveTopicSubscriptions(effectiveQueueName);
         if subscriptions is () {
