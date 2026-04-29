@@ -74,7 +74,7 @@ public isolated client class Administrator {
     isolated remote function createSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionExists|error? {
         string effectiveQueueName = systemSubscriber ? queueName : resolveQueueName(self.queueConfig, queueName, meta);
         string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
-        log:printWarn("Creating topic subscription for ", topic = topic, queue = effectiveQueueName, meta = meta);
+        log:printWarn("Creating topic subscription for ", topic = topic, queue = effectiveQueueName, dlq = effectiveDlqName);
         semp:MsgVpnQueue|error queue = self.retrieveQueue(effectiveQueueName);
         if queue is SolaceQueueNotFound {
             semp:MsgVpnQueue|error dlq = self.retrieveQueue(effectiveDlqName);
