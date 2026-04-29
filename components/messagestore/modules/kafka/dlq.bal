@@ -24,8 +24,6 @@ isolated function initKafkaDlqProducer(Config config) returns error? {
         if dlqProducer is Producer {
             return;
         }
-    }
-    lock {
         dlqProducer = check new Producer("dlq-message-producer", config.cloneReadOnly());
     }
 }

@@ -24,8 +24,6 @@ isolated function initJmsDlqProducer(Config config) returns error? {
         if dlqProducer is api:Producer {
             return;
         }
-    }
-    lock {
         dlqProducer = check new Producer("dlq-message-producer", config.cloneReadOnly());
     }
 }
