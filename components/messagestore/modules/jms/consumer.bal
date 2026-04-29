@@ -1,4 +1,4 @@
-// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.org).
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -14,45 +14,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import messagestore.api;
+import messagestore.dlq;
+
 import ballerinax/java.jms;
 
-isolated client class JmsProducer {
-    *Producer;
-
-    private final jms:MessageProducer producer;
-
-    isolated function init(string clientName, JmsConfig config) returns error? {
-        jms:ConnectionConfiguration connectionConfig = {
-            initialContextFactory: config.initialContextFactory,
-            providerUrl: config.providerUrl,
-            connectionFactoryName: config.connectionFactoryName,
-            username: config.username,
-            password: config.password,
-            properties: config.properties
-        };
-        jms:Connection connection = check new (connectionConfig);
-        jms:Session session = check connection->createSession();
-        self.producer = check session.createProducer();
-    }
-
-    isolated remote function send(string topic, Message message) returns error? {
-        jms:BytesMessage jmsMessage = {
-            correlationId: message.id,
-            content: message.payload
-        };
-        check self.producer->sendTo(
-            {'type: jms:TOPIC, name: topic},
-            message = jmsMessage
-        );
-    }
-
-    isolated remote function close() returns error? {
-        return self.producer->close();
-    }
-}
-
-isolated client class JmsConsumer {
-    *Consumer;
+isolated client class Consumer {
+    *api:Consumer;
 
     private final jms:MessageConsumer consumer;
     private final jms:Session session;
@@ -76,48 +44,41 @@ isolated client class JmsConsumer {
         self.dlqTopic = dlqTopic;
     }
 
-    isolated remote function receive() returns Message|error? {
+    isolated remote function receive() returns api:Message|error? {
         jms:Message? receivedMsg = check self.consumer->receive(self.readTimeout);
         if receivedMsg !is jms:BytesMessage {
             return;
         }
-        Message message = {
+        api:Message message = {
             id: receivedMsg.correlationId,
             payload: receivedMsg.content
         };
         return message;
     }
 
-    isolated remote function ack(Message message) returns error? {
+    isolated remote function ack(api:Message message) returns error? {
         return self.session->'commit();
     }
 
-    isolated remote function nack(Message message) returns error? {
+    isolated remote function nack(api:Message message) returns error? {
         return self.session->'rollback();
     }
 
-    isolated remote function deadLetter(Message message) returns error? {
-        check publishToDlq(self.dlqTopic, message);
+    isolated remote function deadLetter(api:Message message) returns error? {
+        api:Producer? _dlqProducer;
+        lock {
+            _dlqProducer = dlqProducer;
+        }
+        check dlq:publish(self.dlqTopic, _dlqProducer, message);
         return self.session->'commit();
     }
 
-    isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
+    isolated remote function close(api:ClosureIntent intent = api:TEMPORARY) returns error? {
         check self.consumer->close();
-        if intent is PERMANENT {
+        if intent is api:PERMANENT {
             check self.session->unsubscribe(self.subscriberName);
         }
         return self.session->close();
-    }
-}
-
-isolated function initJmsDlqProducer(JmsConfig config) returns error? {
-    lock {
-        if dlqProducer is Producer {
-            return;
-        }
-    }
-    lock {
-        dlqProducer = check new JmsProducer("dlq-message-producer", config.cloneReadOnly());
     }
 }
 
@@ -128,8 +89,8 @@ isolated function initJmsDlqProducer(JmsConfig config) returns error? {
 # + config - The JMS connection configurations
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-isolated function createJmsConsumer(string topic, string subscriberName, JmsConfig config,
-        record {} meta = {}) returns Consumer|error {
+public isolated function createConsumer(string topic, string subscriberName, Config config,
+        record {} meta = {}) returns api:Consumer|error {
     jms:ConnectionConfiguration connectionConfig = {
         initialContextFactory: config.initialContextFactory,
         providerUrl: config.providerUrl,
@@ -140,9 +101,9 @@ isolated function createJmsConsumer(string topic, string subscriberName, JmsConf
     };
     jms:Connection connection = check new (connectionConfig);
     jms:Session session = check connection->createSession(jms:SESSION_TRANSACTED);
-    string? dlqTopic = check resolveDeadLetterTopic(config.consumer.deadLetterTopic, meta);
+    string? dlqTopic = check dlq:resolveDeadLetterTopic(config.consumer.deadLetterTopic, meta);
     if dlqTopic is string {
         check initJmsDlqProducer(config);
     }
-    return new JmsConsumer(session, config.consumer, topic, subscriberName);
+    return new Consumer(session, config.consumer, topic, subscriberName);
 }

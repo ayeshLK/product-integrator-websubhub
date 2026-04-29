@@ -22,7 +22,15 @@ import ballerina/lang.runtime;
 import ballerina/log;
 import ballerina/websubhub;
 
+import wso2/messagestore as store;
+
 public function main() returns error? {
+    error? validation = store:validateConfig(config:store);
+    if validation is error {
+        common:logFatalError("Message store configuration validation failed", validation);
+        return;
+    }
+
     // Starting the health-check service
     http:Listener httpListener = check new (config:server.port,
         secureSocket = common:extractListenerSecureSocketConfig(config:server.secureSocket)

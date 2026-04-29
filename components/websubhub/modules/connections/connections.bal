@@ -22,19 +22,20 @@ import ballerina/lang.value;
 import ballerina/websubhub;
 
 import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
 // Producer which persist the current in-memory state of the Hub 
-final store:Producer statePersistProducer = check initStatePersistProducer();
+final storeapi:Producer statePersistProducer = check initStatePersistProducer();
 
-function initStatePersistProducer() returns store:Producer|error {
+function initStatePersistProducer() returns storeapi:Producer|error {
     string clientId = string `state-persist-${config:serverId}`;
     return store:createProducer(clientId, config:store);
 }
 
 // Consumer which reads the persisted subscriber details
-public final store:Consumer websubEventsConsumer = check initWebSubEventsConsumer();
+public final storeapi:Consumer websubEventsConsumer = check initWebSubEventsConsumer();
 
-function initWebSubEventsConsumer() returns store:Consumer|error {
+function initWebSubEventsConsumer() returns storeapi:Consumer|error {
     string websubEventsConsumerId = string `${config:state.events.consumerIdPrefix}-${config:serverId}`;
     check admin:createWebSubEventsSubscription(config:state.events.topic, websubEventsConsumerId);
     return store:createConsumer(config:state.events.topic, websubEventsConsumerId, config:store);
@@ -44,7 +45,7 @@ function initWebSubEventsConsumer() returns store:Consumer|error {
 #
 # + subscription - The WebSub subscriber details
 # + return - A `store:Consumer` for the message store, or else return an `error` if the operation fails
-public isolated function createConsumer(websubhub:VerifiedSubscription subscription) returns store:Consumer|error {
+public isolated function createConsumer(websubhub:VerifiedSubscription subscription) returns storeapi:Consumer|error {
     string topic = subscription.hubTopic;
     string defaultConsumerId = check constructDefaultConsumerId(subscription);
     return store:createConsumer(topic, defaultConsumerId, config:store);
@@ -64,6 +65,6 @@ isolated function constructDefaultConsumerId(websubhub:VerifiedSubscription subs
 #
 # + topic - The message store topic
 # + return - A `store:Producer` for the message store, or else an `error` if the operation fails
-public isolated function getMessageProducer(string topic) returns store:Producer|error {
+public isolated function getMessageProducer(string topic) returns storeapi:Producer|error {
     return statePersistProducer;
 }

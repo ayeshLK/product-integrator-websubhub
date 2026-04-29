@@ -26,7 +26,7 @@ import ballerina/log;
 import ballerina/mime;
 import ballerina/websubhub;
 
-import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
 isolated map<websubhub:VerifiedSubscription> subscribersCache = {};
 
@@ -81,8 +81,8 @@ isolated function processSubscription(websubhub:VerifiedSubscription subscriptio
 }
 
 isolated function processUnsubscription(websubhub:VerifiedUnsubscription unsubscription) returns error? {
-    log:printDebug("Unsubscription event received, hence removing the subscriber from the internal state", 
-        topic = unsubscription.hubTopic, callback = unsubscription.hubCallback);
+    log:printDebug("Unsubscription event received, hence removing the subscriber from the internal state",
+            topic = unsubscription.hubTopic, callback = unsubscription.hubCallback);
     string subscriberId = common:generateSubscriberId(unsubscription.hubTopic, unsubscription.hubCallback);
     lock {
         _ = subscribersCache.removeIfHasKey(subscriberId);
@@ -91,7 +91,7 @@ isolated function processUnsubscription(websubhub:VerifiedUnsubscription unsubsc
 
 isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubscription subscription) returns error? {
     string topic = subscription.hubTopic;
-    store:Consumer consumerEp = check conn:createConsumer(subscription);
+    storeapi:Consumer consumerEp = check conn:createConsumer(subscription);
     websubhub:HubClient clientEp = check new (subscription, {
         httpVersion: http:HTTP_2_0,
         secureSocket: common:extractClientSecureSocketConfig(config:delivery.secureSocket),
@@ -100,7 +100,7 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
     });
     do {
         while true {
-            store:Message? message = check consumerEp->receive();
+            storeapi:Message? message = check consumerEp->receive();
             if !isValidConsumer(subscription.hubTopic, subscriberId) {
                 fail error common:InvalidSubscriptionError(
                     string `Subscription or the topic is invalid`, topic = topic, subscriberId = subscriberId
@@ -130,7 +130,7 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
         common:logRecoverableError("Error occurred while sending notification to subscriber", e);
 
         if e is common:InvalidSubscriptionError {
-            error? result = consumerEp->close(store:PERMANENT);
+            error? result = consumerEp->close(storeapi:PERMANENT);
             if result is error {
                 common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
             }
@@ -140,7 +140,7 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
         if !isValidConsumer(subscription.hubTopic, subscriberId) {
             // In some cases a messaging consumer will be attached to an entity in the message store (queue or topic) and that
             // entity will be removed when unsubscribing, hence it is appropriate to stop the consumer in those cases
-            error? result = consumerEp->close(store:PERMANENT);
+            error? result = consumerEp->close(storeapi:PERMANENT);
             if result is error {
                 common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
             }
@@ -149,7 +149,7 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
 
         // If subscription-deleted error received, remove the subscription
         if e is websubhub:SubscriptionDeletedError {
-            error? result = consumerEp->close(store:PERMANENT);
+            error? result = consumerEp->close(storeapi:PERMANENT);
             if result is error {
                 common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
             }
@@ -175,7 +175,7 @@ isolated function pollForNewUpdates(string subscriberId, websubhub:VerifiedSubsc
             return;
         }
 
-        error? result = consumerEp->close(store:TEMPORARY);
+        error? result = consumerEp->close(storeapi:TEMPORARY);
         if result is error {
             common:logRecoverableError("Error occurred while gracefully closing message store consumer", result);
         }
@@ -228,7 +228,7 @@ isolated function getSubscription(string subscriberId) returns websubhub:Verifie
     }
 }
 
-isolated function constructContentDistMsg(store:Message message) returns websubhub:ContentDistributionMessage|error {
+isolated function constructContentDistMsg(storeapi:Message message) returns websubhub:ContentDistributionMessage|error {
     string payloadString = check string:fromBytes(message.payload);
     json payload = check value:fromJsonString(payloadString);
     websubhub:ContentDistributionMessage distributionMsg = {
@@ -239,7 +239,7 @@ isolated function constructContentDistMsg(store:Message message) returns websubh
     return distributionMsg;
 }
 
-isolated function constructDeliveryHeaders(store:Message message) returns map<string|string[]>? {
+isolated function constructDeliveryHeaders(storeapi:Message message) returns map<string|string[]>? {
     string? messageId = message.id;
     if messageId is () {
         return message.metadata;

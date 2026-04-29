@@ -22,7 +22,7 @@ import ballerina/http;
 import ballerina/lang.value;
 import ballerina/websubhub;
 
-import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
 function initializeHubState() returns error? {
     http:Client stateSnapshot;
@@ -52,7 +52,7 @@ function initializeHubState() returns error? {
 function updateHubState() returns error? {
     do {
         while true {
-            store:Message? message = check conn:websubEventsConsumer->receive();
+            storeapi:Message? message = check conn:websubEventsConsumer->receive();
             if message is () {
                 continue;
             }
