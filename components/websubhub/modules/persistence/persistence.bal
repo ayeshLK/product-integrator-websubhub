@@ -20,7 +20,7 @@ import websubhub.connections as conn;
 
 import ballerina/websubhub;
 
-import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
 type StateUpdateEvent websubhub:TopicRegistration|websubhub:TopicDeregistration|
     websubhub:VerifiedSubscription|websubhub:VerifiedUnsubscription|common:StaleSubscription;
@@ -63,6 +63,6 @@ public isolated function addUpdateMessage(string topicName, websubhub:UpdateMess
 }
 
 isolated function produceMessage(string topic, byte[] payload, map<string|string[]>? metadata = (), string? messageId = ()) returns error? {
-    store:Message message = {id: messageId, payload, metadata};
+    storeapi:Message message = {id: messageId, payload, metadata};
     return (check conn:getMessageProducer(topic))->send(topic, message);
 }
