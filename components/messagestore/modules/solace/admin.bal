@@ -293,7 +293,10 @@ isolated function resolveQueueName(string queueName, record {} meta) returns str
 
 isolated function resolveDlqName(string queueName, record {} meta) returns string {
     anydata val = meta[META_DLQ_NAME];
-    return val is string ? val : string `dlq-${queueName}`;
+    if val is string {
+        return val;
+    }
+    return string `dlq-${queueName}`;
 }
 
 isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQueueConfig? queueConfig, record {} meta) returns semp:MsgVpnQueue|error {
