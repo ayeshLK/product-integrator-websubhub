@@ -242,8 +242,7 @@ websubhub:Service hubService = @websubhub:ServiceConfig {
         }
 
         do {
-            message[common:SUBSCRIPTION_TIMESTAMP] = subscription[common:SUBSCRIPTION_TIMESTAMP];
-            check admin:deleteSubscription(message);
+            check admin:deleteSubscription(subscription);
             check persist:removeSubscription(message);
         } on fail error unsubscriptionErr {
             string errorMessage = string

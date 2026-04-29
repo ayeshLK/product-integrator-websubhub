@@ -73,16 +73,16 @@ public isolated function createSubscription(websubhub:VerifiedSubscription subsc
     return result;
 }
 
-public isolated function deleteSubscription(websubhub:VerifiedUnsubscription unsubscription)
+public isolated function deleteSubscription(websubhub:VerifiedSubscription subscription)
     returns websubhub:InternalUnsubscriptionError|error? {
 
-    string topic = unsubscription.hubTopic;
-    string timestamp = check value:ensureType(unsubscription[common:SUBSCRIPTION_TIMESTAMP]);
-    string consumerName = constructConsumerId(topic, unsubscription.hubCallback, timestamp);
-    error? result = administrator->deleteSubscription(topic, consumerName, false, unsubscription);
+    string topic = subscription.hubTopic;
+    string timestamp = check value:ensureType(subscription[common:SUBSCRIPTION_TIMESTAMP]);
+    string consumerName = constructConsumerId(topic, subscription.hubCallback, timestamp);
+    error? result = administrator->deleteSubscription(topic, consumerName, false, subscription);
     if result is storeapi:SubscriptionNotFound {
         string errorMessage = string `
-            Subscription for topic ${topic} and callback ${unsubscription.hubCallback} with consumer-name ${consumerName} can not be found in the message store.`;
+            Subscription for topic ${topic} and callback ${subscription.hubCallback} with consumer-name ${consumerName} can not be found in the message store.`;
         return error websubhub:InternalUnsubscriptionError(errorMessage, statusCode = http:STATUS_NOT_FOUND);
     }
     return result;
