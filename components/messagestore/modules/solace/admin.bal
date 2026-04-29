@@ -72,7 +72,7 @@ public isolated client class Administrator {
     }
 
     isolated remote function createSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionExists|error? {
-        string effectiveQueueName = systemSubscriber ? queueName: resolveQueueName(queueName, meta);
+        string effectiveQueueName = systemSubscriber ? queueName : resolveQueueName(self.queueConfig, queueName, meta);
         string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
         log:printWarn("Creating topic subscription for ", topic = topic, queue = effectiveQueueName, meta = meta);
         semp:MsgVpnQueue|error queue = self.retrieveQueue(effectiveQueueName);
@@ -91,7 +91,7 @@ public isolated client class Administrator {
     }
 
     isolated remote function deleteSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionNotFound|error? {
-        string effectiveQueueName = systemSubscriber ? queueName: resolveQueueName(queueName, meta);
+        string effectiveQueueName = systemSubscriber ? queueName : resolveQueueName(self.queueConfig, queueName, meta);
         string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
         semp:MsgVpnQueueSubscription[]? subscriptions = check self.retrieveTopicSubscriptions(effectiveQueueName);
         if subscriptions is () {
@@ -286,9 +286,16 @@ public isolated client class Administrator {
     }
 }
 
-isolated function resolveQueueName(string queueName, record {} meta) returns string {
+isolated function resolveQueueName(SolaceQueueConfig? queueConfig, string queueId, record {} meta) returns string {
     anydata val = meta[META_QUEUE_NAME];
-    return val is string ? val : queueName;
+    if val is string {
+        return val;
+    }
+    string? queueNamePrefix = queueConfig?.queueNamePrefix;
+    if queueNamePrefix is string {
+        return string `${queueNamePrefix}${queueId}`;
+    }
+    return string `consumer-${queueId}`;
 }
 
 isolated function resolveDlqName(string queueName, record {} meta) returns string {

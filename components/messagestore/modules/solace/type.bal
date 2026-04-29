@@ -25,7 +25,7 @@ public type Config record {|
     SolaceConsumerConfig consumer;
     SolaceAdminConfig admin;
     # Solace queue configurations
-    SolaceQueueConfig queue?;
+    SolaceQueueConfig queue;
 |};
 
 # Defines the configurations for establishing a connection to a Solace event broker.
@@ -62,8 +62,8 @@ public type SolaceConsumerConfig record {|
 
 # Configuration for creating and managing a Solace queue.
 public type SolaceQueueConfig record {|
-    # Prefix used when generating the Solace queue name.
-    string queueNamePrefix;
+    # Prefix used when generating the Solace queue name for consumer queues.
+    string queueNamePrefix?;
     # Maximum message spool quota for the queue in MB.
     int messageQueueQuota = 5000;
     # Client username that owns the queue.

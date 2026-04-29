@@ -63,7 +63,7 @@ public isolated function createSubscription(websubhub:VerifiedSubscription subsc
 
     string topic = subscription.hubTopic;
     string timestamp = check value:ensureType(subscription[common:SUBSCRIPTION_TIMESTAMP]);
-    string consumerName = constructConsumerName(topic, subscription.hubCallback, timestamp);
+    string consumerName = constructConsumerId(topic, subscription.hubCallback, timestamp);
     error? result = administrator->createSubscription(topic, consumerName, false, subscription);
     if result is storeapi:SubscriptionExists {
         string errorMessage = string `
@@ -78,7 +78,7 @@ public isolated function deleteSubscription(websubhub:VerifiedUnsubscription uns
 
     string topic = unsubscription.hubTopic;
     string timestamp = check value:ensureType(unsubscription[common:SUBSCRIPTION_TIMESTAMP]);
-    string consumerName = constructConsumerName(topic, unsubscription.hubCallback, timestamp);
+    string consumerName = constructConsumerId(topic, unsubscription.hubCallback, timestamp);
     error? result = administrator->deleteSubscription(topic, consumerName, false, unsubscription);
     if result is storeapi:SubscriptionNotFound {
         string errorMessage = string `
@@ -88,11 +88,11 @@ public isolated function deleteSubscription(websubhub:VerifiedUnsubscription uns
     return result;
 }
 
-isolated function constructConsumerName(string topic, string hubCallback, string timestamp) returns string {
+isolated function constructConsumerId(string topic, string hubCallback, string timestamp) returns string {
     string subscriberId = string `${topic}___${hubCallback}___${timestamp}`;
     int constructedId = 0;
     foreach var [idx, val] in subscriberId.toCodePointInts().enumerate() {
         constructedId += (idx + 1) * val;
     }
-    return string `consumer-${constructedId}`;
+    return string `${constructedId}`;
 }
