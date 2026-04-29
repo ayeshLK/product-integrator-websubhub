@@ -38,7 +38,6 @@ offsetReset = "earliest"
 # auth.password = "admin"
 
 # [websubhub.consolidator.config.store.solace.queue]
-# queueNamePrefix = "consumer"
 # messageQueueQuota = 5000
 # queueOwner = "default"
 # nonOwnerPermission = "no-access"
