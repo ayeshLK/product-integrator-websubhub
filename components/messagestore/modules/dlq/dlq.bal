@@ -37,7 +37,7 @@ public isolated function publish(string? dlq, api:Producer? dlqProducer, api:Mes
     check dlqProducer->send(dlq, message);
 }
 
-# The field name that can be found in the meta-information provided during consumer creation for deal-letter configurations.
+# The field name that can be found in the meta-information provided during consumer creation for dead-letter configurations.
 const string DLQ_TOPIC = "dlqTopic";
 
 # Retrieves the name of the dead-letter topic.
