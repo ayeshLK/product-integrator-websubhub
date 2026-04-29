@@ -94,6 +94,6 @@ isolated client class Consumer {
 # if `solace.queue_name` is present it takes priority over the `queueName` parameter
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
 public isolated function createConsumer(string queueName, Config config, boolean systemConsumer = false, record {} meta = {}) returns api:Consumer|error {
-    string effectiveQueueName = systemConsumer ? queueName: resolveQueueName(config.queue, queueName, meta);
+    string effectiveQueueName = systemConsumer ? queueName : resolveQueueName(config.queue, queueName, meta);
     return new Consumer(config, effectiveQueueName);
 }
