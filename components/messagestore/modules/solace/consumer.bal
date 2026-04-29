@@ -87,8 +87,10 @@ isolated client class Consumer {
 #
 # + config - The Solace connection configurations
 # + queueName - The queue from which the consumer is receiving messages
-# + meta - The meta data required to resolve the consumer configurations
+# + meta - The meta data required to resolve the consumer configurations,
+# if `solace.queue_name` is present it takes priority over the `queueName` parameter
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
 public isolated function createConsumer(string queueName, Config config, record {} meta = {}) returns api:Consumer|error {
-    return new Consumer(config, queueName);
+    string effectiveQueueName = resolveQueueName(queueName, meta);
+    return new Consumer(config, effectiveQueueName);
 }

@@ -24,6 +24,8 @@ public type Config record {|
     # Solace consumer-specific configurations
     SolaceConsumerConfig consumer;
     SolaceAdminConfig admin;
+    # Solace queue configurations
+    SolaceQueueConfig queue?;
 |};
 
 # Defines the configurations for establishing a connection to a Solace event broker.
@@ -56,6 +58,32 @@ public type SolaceConnectionConfig record {|
 public type SolaceConsumerConfig record {|
     # The timeout to wait for one receive call to the Solace message store
     decimal receiveTimeout = 10;
+|};
+
+# Configuration for creating and managing a Solace queue.
+public type SolaceQueueConfig record {|
+    # Prefix used when generating the Solace queue name.
+    string queueNamePrefix;
+    # Maximum message spool quota for the queue in MB.
+    int messageQueueQuota = 5000;
+    # Client username that owns the queue.
+    string queueOwner;
+    # Permission level granted to non-owner clients.
+    string nonOwnerPermission = "no-access";
+    # Enables tracking of message delivery attempts.
+    boolean deliveryCountEnabled = true;
+    # Indicates whether message TTL should be respected.
+    boolean respectTtl = false;
+    # Maximum allowed TTL for messages in seconds. A value of `0` indicates no explicit maximum.
+    int maxTtl = 0;
+    # Redelivery configuration.
+    record {|
+        # Maximum number of redelivery attempts.
+        int maxCount;
+    |}|record {|
+        # Indicates whether messages should be retried indefinitely.
+        boolean tryForever = true;
+    |} redeliver?;
 |};
 
 # Defines configurations for the Solace administrator.
