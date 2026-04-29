@@ -106,6 +106,6 @@ public isolated function createConsumer(string topic, string defaultSubscriberId
     if dlqTopic is string {
         check initJmsDlqProducer(config);
     }
-    string subscriberName = string `consumer-${defaultSubscriberId}`;
+    string subscriberName = systemConsumer ? defaultSubscriberId : string `consumer-${defaultSubscriberId}`;
     return new Consumer(session, config.consumer, topic, subscriberName);
 }

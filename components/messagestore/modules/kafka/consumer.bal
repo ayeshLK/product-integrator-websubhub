@@ -168,7 +168,7 @@ isolated client class Consumer {
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
 public isolated function createConsumer(string groupId, string topic, Config config, boolean systemConsumer, record {} meta = {}) returns api:Consumer|error {
 
-    string consumerGroup = check resolveConsumerGroup(groupId, meta);
+    string consumerGroup = systemConsumer ? groupId : check resolveConsumerGroup(groupId, meta);
     int[]? topicPartitions = check resolveTopicPartitions(meta);
     string? dlqTopic = check dlq:resolveDeadLetterTopic(config.consumer.deadLetterTopic, meta);
     if dlqTopic is string {
