@@ -1,4 +1,4 @@
-// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.org).
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -22,10 +22,10 @@ import xlibb/solace;
 # Defines the Solace message store configurations
 public type SolaceMessageStore record {|
     # Configurations related to Solace message store connection    
-    SolaceConfig solace;
+    Config solace;
 |};
 
-public type SolaceConfig record {|
+public type Config record {|
     *SolaceConnectionConfig;
     # Solace consumer-specific configurations
     SolaceConsumerConfig consumer;

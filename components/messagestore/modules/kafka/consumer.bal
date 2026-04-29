@@ -1,4 +1,4 @@
-// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.org).
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -14,38 +14,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import messagestore.api;
+import messagestore.dlq;
+
 import ballerina/lang.value;
 import ballerina/log;
 import ballerinax/kafka;
 
-isolated client class KafkaProducer {
-    *Producer;
-
-    private final kafka:Producer producer;
-
-    isolated function init(string clientId, KafkaConfig config) returns error? {
-        kafka:ProducerConfiguration producerConfig = {
-            clientId,
-            acks: config.producer.acks,
-            retryCount: config.producer.retryCount,
-            secureSocket: config.secureSocket,
-            securityProtocol: config.securityProtocol
-        };
-        self.producer = check new (config.bootstrapServers, producerConfig);
-    }
-
-    isolated remote function send(string topic, Message message) returns error? {
-        check self.producer->send({topic, value: message.payload, headers: message.metadata});
-        return self.producer->'flush();
-    }
-
-    isolated remote function close() returns error? {
-        return self.producer->close();
-    }
-}
-
-isolated client class KafkaConsumer {
-    *Consumer;
+isolated client class Consumer {
+    *api:Consumer;
 
     private final kafka:Consumer consumer;
     private final readonly & KafkaConsumerConfig config;
@@ -53,7 +30,7 @@ isolated client class KafkaConsumer {
 
     private KafkaConsumerRecord[] messageBatch = [];
 
-    isolated function init(KafkaConfig config, string groupId, string topic, int[]? partitions = (), string? dlqTopic = ()) returns error? {
+    isolated function init(Config config, string groupId, string topic, int[]? partitions = (), string? dlqTopic = ()) returns error? {
 
         kafka:ConsumerConfiguration consumerConfig = {
             groupId,
@@ -121,7 +98,7 @@ isolated client class KafkaConsumer {
         self.consumer = consumer;
     }
 
-    isolated remote function receive() returns Message|error? {
+    isolated remote function receive() returns api:Message|error? {
         check self.updateCurrentBatch();
         if self.isCurrentBatchEmpty() {
             return;
@@ -153,36 +130,29 @@ isolated client class KafkaConsumer {
         }
     }
 
-    isolated remote function ack(Message message) returns error? {
+    isolated remote function ack(api:Message message) returns error? {
         if self.isCurrentBatchEmpty() {
             return self.consumer->'commit();
         }
     }
 
-    isolated remote function nack(Message message) returns error? {
+    isolated remote function nack(api:Message message) returns error? {
         // As Kafka does not have a `nack` functionality no need to implement this API
     }
 
-    isolated remote function deadLetter(Message message) returns error? {
-        check publishToDlq(self.dlqTopic, message);
+    isolated remote function deadLetter(api:Message message) returns error? {
+        api:Producer? _dlqProducer;
+        lock {
+            _dlqProducer = dlqProducer;
+        }
+        check dlq:publish(self.dlqTopic, _dlqProducer, message);
         if self.isCurrentBatchEmpty() {
             check self.consumer->'commit();
         }
     }
 
-    isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
+    isolated remote function close(api:ClosureIntent intent = api:TEMPORARY) returns error? {
         return self.consumer->close(self.config.gracefulClosePeriod);
-    }
-}
-
-isolated function initKafkaDlqProducer(KafkaConfig config) returns error? {
-    lock {
-        if dlqProducer is Producer {
-            return;
-        }
-    }
-    lock {
-        dlqProducer = check new KafkaProducer("dlq-message-producer", config.cloneReadOnly());
     }
 }
 
@@ -195,15 +165,15 @@ isolated function initKafkaDlqProducer(KafkaConfig config) returns error? {
 # if the user provided a `meta` information it would have a higher priority than the `groupId` provided. 
 # As of now only consumer-group and topic-partitions can be provided as `meta`
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-isolated function createKafkaConsumer(string groupId, string topic, KafkaConfig config, record {} meta = {}) returns Consumer|error {
+public isolated function createConsumer(string groupId, string topic, Config config, record {} meta = {}) returns api:Consumer|error {
 
     string consumerGroup = check resolveConsumerGroup(groupId, meta);
     int[]? topicPartitions = check resolveTopicPartitions(meta);
-    string? dlqTopic = check resolveDeadLetterTopic(config.consumer.deadLetterTopic, meta);
+    string? dlqTopic = check dlq:resolveDeadLetterTopic(config.consumer.deadLetterTopic, meta);
     if dlqTopic is string {
         check initKafkaDlqProducer(config);
     }
-    return new KafkaConsumer(config, consumerGroup, topic, topicPartitions, dlqTopic);
+    return new Consumer(config, consumerGroup, topic, topicPartitions, dlqTopic);
 }
 
 const string CONSUMER_GROUP = "consumerGroup";

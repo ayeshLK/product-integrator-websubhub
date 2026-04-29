@@ -6,3 +6,7 @@ distribution = "2201.13.3"
 
 [build-options]
 observabilityIncluded = true
+
+[[package.modules]]
+name = "messagestore.api"
+export = true

@@ -14,25 +14,36 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import messagestore.api;
+import messagestore.jms;
+import messagestore.kafka;
+import messagestore.solace;
+
+# Represents the message store configurations.
+public type Config record {|
+    # Kafka message store configurations
+    kafka:Config kafka?;
+    # Solace messaage store configurations
+    solace:Config solace?;
+    # JMS message store configurations
+    jms:Config jms?;
+|};
+
 # Initialize a producer for a specific message store.
 #
 # + clientId - The unique client Id or name 
 # + store - The message store configurations
 # + return - A `store:Producer` for a specific message store, or else return an `error` if the operation fails
-public isolated function createProducer(
-        string clientId,
-        record {|KafkaConfig kafka?; SolaceConfig solace?; JmsConfig jms?;|} store
-) returns Producer|error {
-
+public isolated function createProducer(string clientId, Config store) returns api:Producer|error {
     var {kafka, solace, jms} = store;
-    if kafka is KafkaConfig {
-        return new KafkaProducer(clientId, kafka);
+    if kafka is kafka:Config {
+        return new kafka:Producer(clientId, kafka);
     }
-    if solace is SolaceConfig {
-        return new SolaceProducer(clientId, solace);
+    if solace is solace:Config {
+        return new solace:Producer(clientId, solace);
     }
-    if jms is JmsConfig {
-        return new JmsProducer(clientId, jms);
+    if jms is jms:Config {
+        return new jms:Producer(clientId, jms);
     }
     return error("Error occurred while reading the message store configurations when creating the store producer");
 }
@@ -44,22 +55,16 @@ public isolated function createProducer(
 # + store - The message store configurations
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for a specific message store, or else return an `error` if the operation fails
-public isolated function createConsumer(
-        string topic,
-        string defaultConsumerId,
-        record {|KafkaConfig kafka?; SolaceConfig solace?; JmsConfig jms?;|} store,
-        record {} meta = {}
-) returns Consumer|error {
-
+public isolated function createConsumer(string topic, string defaultConsumerId, Config store, record {} meta = {}) returns api:Consumer|error {
     var {kafka, solace, jms} = store;
-    if kafka is KafkaConfig {
-        return createKafkaConsumer(defaultConsumerId, topic, kafka, meta);
+    if kafka is kafka:Config {
+        return kafka:createConsumer(defaultConsumerId, topic, kafka, meta);
     }
-    if solace is SolaceConfig {
-        return createSolaceConsumer(defaultConsumerId, solace, meta);
+    if solace is solace:Config {
+        return solace:createConsumer(defaultConsumerId, solace, meta);
     }
-    if jms is JmsConfig {
-        return createJmsConsumer(topic, defaultConsumerId, jms, meta);
+    if jms is jms:Config {
+        return jms:createConsumer(topic, defaultConsumerId, jms, meta);
     }
     return error("Error occurred while reading the message store configurations when creating the store consumer");
 }
@@ -68,10 +73,10 @@ public isolated function createConsumer(
 #
 # + store - The message store configurations
 # + return - A `store:Administrator` for a message store, or else return an `error` if the operation fails
-public isolated function createAdministrator(record {|KafkaConfig kafka?; SolaceConfig solace?; JmsConfig jms?;|} store) returns Administrator|error {
+public isolated function createAdministrator(Config store) returns api:Administrator|error {
     var {kafka, solace, jms} = store;
-    if solace is SolaceConfig {
-        return new SolaceAdministrator(solace);
+    if solace is solace:Config {
+        return new solace:Administrator(solace);
     }
-    return new Administrator();
+    return new api:Administrator();
 }
