@@ -19,12 +19,6 @@ import ballerina/os;
 
 import xlibb/solace;
 
-# Defines the Solace message store configurations
-public type SolaceMessageStore record {|
-    # Configurations related to Solace message store connection    
-    Config solace;
-|};
-
 public type Config record {|
     *SolaceConnectionConfig;
     # Solace consumer-specific configurations

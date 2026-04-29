@@ -16,12 +16,6 @@
 
 import ballerinax/java.jms;
 
-# Defines the JMS message store configurations
-public type JmsMessageStore record {|
-    # Configurations related to JMS message store connection    
-    Config solace;
-|};
-
 public type Config record {|
     *jms:ConnectionConfiguration;
     # JMS consumer-specific configurations

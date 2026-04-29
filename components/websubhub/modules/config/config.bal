@@ -29,7 +29,6 @@ public final string serverId = os:getEnv(common:SERVER_ID) === "" ? server.id : 
 public configurable common:ServerStateConfig state = ?;
 
 # Messaging store connection related configurations
-// public configurable store:KafkaMessageStore|store:SolaceMessageStore store = ?;
 public configurable store:Config store = ?;
 
 # Message delivery related configurations
