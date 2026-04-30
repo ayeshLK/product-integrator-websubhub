@@ -32,7 +32,7 @@ offsetReset = "earliest"
 # receiveTimeout = 10.0
 
 # [websubhub.consolidator.config.store.solace.admin]
-# url = "http://localhost:8080/SEMP/v2/config"
+# url = "http://localhost:8085/SEMP/v2/config"
 # timeout = 30.0
 # auth.username = "admin"
 # auth.password = "admin"
@@ -47,4 +47,22 @@ offsetReset = "earliest"
 # redeliver.maxCount = 10
 
 [ballerina.log]
-level = "INFO"
+level = "DEBUG"
+
+[ballerina.observe]
+tracingEnabled=true
+tracingProvider="jaeger"
+metricsEnabled=true
+metricsReporter="prometheus"
+
+[ballerinax.jaeger]
+agentHostname="localhost"
+agentPort=4317
+samplerType="const"
+samplerParam=1.0
+reporterFlushInterval=2000
+reporterBufferSize=1000
+
+[ballerinax.prometheus]
+port=9798
+host="0.0.0.0"
