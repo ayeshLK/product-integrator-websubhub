@@ -48,7 +48,6 @@ public isolated client class Administrator {
     private final semp:Client administrator;
     private final string messageVpn;
     private final readonly & SolaceQueueConfig? queueConfig;
-    private final string[] customDlqs = [];
 
     public isolated function init(Config config) returns error? {
         self.administrator = check new (
@@ -81,9 +80,6 @@ public isolated client class Administrator {
             semp:MsgVpnQueue|error dlq = self.retrieveQueue(effectiveDlqName);
             if dlq is SolaceQueueNotFound {
                 _ = check self.createQueue(effectiveDlqName, (), self.queueConfig, meta);
-                if !systemSubscriber && meta.hasKey(META_DLQ_NAME) {
-                    self.storeDlqName(effectiveDlqName);
-                }
             } else if dlq is error {
                 return dlq;
             }
@@ -113,8 +109,11 @@ public isolated client class Administrator {
 
         if subscriptions.length() === 1 {
             check self.deleteQueue(effectiveQueueName);
-            if self.isCustomDlq(effectiveDlqName) {
-                return;
+            if !systemSubscriber && meta.hasKey(META_DLQ_NAME) {
+                boolean? dlqDeleteEnabled = self.queueConfig?.dlq?.deleteCustomOnUbsubscription;
+                if dlqDeleteEnabled is () || !dlqDeleteEnabled {
+                    return;
+                }
             }
             check self.deleteQueue(effectiveDlqName);
         }
@@ -291,24 +290,6 @@ public isolated client class Administrator {
 
     isolated remote function close() returns error? {
         return;
-    }
-
-    isolated function storeDlqName(string dlqName) {
-        if self.queueConfig?.dlq?.deleteCustomOnUbsubscription is () {
-            return;
-        }
-        lock {
-            self.customDlqs.push(dlqName);
-        }
-    }
-
-    isolated function isCustomDlq(string dlqName) returns boolean {
-        if self.queueConfig?.dlq?.deleteCustomOnUbsubscription is () {
-            return false;
-        }
-        lock {
-            return self.customDlqs.indexOf(dlqName) is int;
-        }
     }
 }
 
