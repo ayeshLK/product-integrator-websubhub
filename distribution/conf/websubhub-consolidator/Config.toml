@@ -38,4 +38,22 @@ offsetReset = "earliest"
 # auth.password = "admin"
 
 [ballerina.log]
-level = "INFO"
+level = "DEBUG"
+
+[ballerina.observe]
+tracingEnabled=true
+tracingProvider="jaeger"
+metricsEnabled=true
+metricsReporter="prometheus"
+
+[ballerinax.jaeger]
+agentHostname="localhost"
+agentPort=4317
+samplerType="const"
+samplerParam=1.0
+reporterFlushInterval=2000
+reporterBufferSize=1000
+
+[ballerinax.prometheus]
+port=9798
+host="0.0.0.0"
