@@ -32,7 +32,7 @@ offsetReset = "earliest"
 # receiveTimeout = 10.0
 
 # [websubhub.consolidator.config.store.solace.admin]
-# url = "http://localhost:8080/SEMP/v2/config"
+# url = "http://localhost:8085/SEMP/v2/config"
 # timeout = 30.0
 # auth.username = "admin"
 # auth.password = "admin"

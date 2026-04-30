@@ -35,7 +35,7 @@ gracefulClosePeriod = 5.0
 # receiveTimeout = 10.0
 
 # [websubhub.config.store.solace.admin]
-# url = "http://localhost:8080/SEMP/v2/config"
+# url = "http://localhost:8085/SEMP/v2/config"
 # timeout = 30.0
 # auth.username = "admin"
 # auth.password = "admin"
