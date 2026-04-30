@@ -93,6 +93,7 @@ public isolated client class Administrator {
     isolated remote function deleteSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionNotFound|error? {
         string effectiveQueueName = systemSubscriber ? queueName : resolveQueueName(self.queueConfig, queueName, meta);
         string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
+        log:printWarn("Deleting topic subscription for ", topic = topic, queue = effectiveQueueName, dlq = effectiveDlqName);
         semp:MsgVpnQueueSubscription[]? subscriptions = check self.retrieveTopicSubscriptions(effectiveQueueName);
         if subscriptions is () {
             return;
@@ -343,6 +344,8 @@ isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQue
         int|error parsed = int:fromString(spoolVal);
         if parsed is int {
             payload.maxMsgSpoolUsage = parsed;
+        } else {
+            return error(string `invalid meta value for '${META_MAX_MSG_SPOOL}': "${spoolVal}", expected an integer`);
         }
     }
 
@@ -351,6 +354,8 @@ isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQue
         SolaceQueuePermission|error perm = permVal.cloneWithType(SolaceQueuePermission);
         if perm is SolaceQueuePermission {
             payload.permission = perm;
+        } else {
+            return error(string `invalid meta value for '${META_NON_OWNER_PERMISSION}': "${permVal}", expected an "no-access" or "read-only" or "consume" or "modify-topic" or "delete"`);
         }
     }
 
@@ -387,6 +392,8 @@ isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQue
         int|error parsed = int:fromString(maxTtlVal);
         if parsed is int {
             payload.maxTtl = parsed;
+        } else {
+            return error(string `invalid meta value for '${META_MAX_TTL}': "${maxTtlVal}", expected an integer`);
         }
     }
 
@@ -412,6 +419,8 @@ isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQue
         if parsed is int {
             payload.redeliveryEnabled = true;
             payload.maxRedeliveryCount = parsed;
+        } else {
+            return error(string `invalid meta value for '${META_REDELIVERY_MAX_COUNT}': "${maxCountVal}", expected an integer`);
         }
     }
 
