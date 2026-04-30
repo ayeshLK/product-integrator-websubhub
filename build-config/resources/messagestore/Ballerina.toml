@@ -10,9 +10,3 @@ observabilityIncluded = true
 [[package.modules]]
 name = "messagestore.api"
 export = true
-
-[[dependency]]
-org="xlibb"
-name="solace"
-version="0.4.0"
-repository="local"
