@@ -38,7 +38,7 @@ public final storeapi:Consumer websubEventsConsumer = check initWebSubEventsCons
 function initWebSubEventsConsumer() returns storeapi:Consumer|error {
     string websubEventsConsumerId = string `${config:state.events.consumerIdPrefix}-${config:serverId}`;
     check admin:createWebSubEventsSubscription(config:state.events.topic, websubEventsConsumerId);
-    return store:createConsumer(config:state.events.topic, websubEventsConsumerId, config:store);
+    return store:createConsumer(config:state.events.topic, websubEventsConsumerId, config:store, true);
 }
 
 # Initialize a `store:Consumer` for a WebSub subscriber.
@@ -48,7 +48,7 @@ function initWebSubEventsConsumer() returns storeapi:Consumer|error {
 public isolated function createConsumer(websubhub:VerifiedSubscription subscription) returns storeapi:Consumer|error {
     string topic = subscription.hubTopic;
     string defaultConsumerId = check constructDefaultConsumerId(subscription);
-    return store:createConsumer(topic, defaultConsumerId, config:store);
+    return store:createConsumer(topic, defaultConsumerId, config:store, false, subscription);
 }
 
 isolated function constructDefaultConsumerId(websubhub:VerifiedSubscription subscription) returns string|error {
@@ -58,7 +58,7 @@ isolated function constructDefaultConsumerId(websubhub:VerifiedSubscription subs
     foreach var [idx, val] in subscriberId.toCodePointInts().enumerate() {
         constructedId += (idx + 1) * val;
     }
-    return string `consumer-${constructedId}`;
+    return string `${constructedId}`;
 }
 
 # Retrieves a message producer per topic.

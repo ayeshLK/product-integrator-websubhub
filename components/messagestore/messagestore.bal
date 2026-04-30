@@ -53,18 +53,19 @@ public isolated function createProducer(string clientId, Config store) returns a
 # + topic - The topic from which the consumer should received events for
 # + defaultConsumerId - The default consumer Id which is associated with the user. This configuration will have different semantics for different message stores
 # + store - The message store configurations
+# + systemConsumer - Flag to indicate whether this is a system consumer
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for a specific message store, or else return an `error` if the operation fails
-public isolated function createConsumer(string topic, string defaultConsumerId, Config store, record {} meta = {}) returns api:Consumer|error {
+public isolated function createConsumer(string topic, string defaultConsumerId, Config store, boolean systemConsumer = false, record {} meta = {}) returns api:Consumer|error {
     var {kafka, solace, jms} = store;
     if kafka is kafka:Config {
-        return kafka:createConsumer(defaultConsumerId, topic, kafka, meta);
+        return kafka:createConsumer(defaultConsumerId, topic, kafka, systemConsumer, meta);
     }
     if solace is solace:Config {
-        return solace:createConsumer(defaultConsumerId, solace, meta);
+        return solace:createConsumer(defaultConsumerId, solace, systemConsumer, meta);
     }
     if jms is jms:Config {
-        return jms:createConsumer(topic, defaultConsumerId, jms, meta);
+        return jms:createConsumer(topic, defaultConsumerId, jms, systemConsumer, meta);
     }
     return error("Error occurred while reading the message store configurations when creating the store consumer");
 }

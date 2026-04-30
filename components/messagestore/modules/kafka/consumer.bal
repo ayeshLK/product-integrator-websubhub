@@ -161,13 +161,14 @@ isolated client class Consumer {
 # + groupId - The default Kafka consumer group to which this consumer should belong to
 # + topic - The Kafka topic to which the consumer should received events for
 # + config - The Kafka connection configurations
+# + systemConsumer - Flag to indicate whether this is a system consumer
 # + meta - The meta data required to resolve the Kafka consumer group and topic partitions, 
 # if the user provided a `meta` information it would have a higher priority than the `groupId` provided. 
 # As of now only consumer-group and topic-partitions can be provided as `meta`
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createConsumer(string groupId, string topic, Config config, record {} meta = {}) returns api:Consumer|error {
+public isolated function createConsumer(string groupId, string topic, Config config, boolean systemConsumer, record {} meta = {}) returns api:Consumer|error {
 
-    string consumerGroup = check resolveConsumerGroup(groupId, meta);
+    string consumerGroup = systemConsumer ? groupId : check resolveConsumerGroup(groupId, meta);
     int[]? topicPartitions = check resolveTopicPartitions(meta);
     string? dlqTopic = check dlq:resolveDeadLetterTopic(config.consumer.deadLetterTopic, meta);
     if dlqTopic is string {
@@ -183,7 +184,7 @@ isolated function resolveConsumerGroup(string defaultGroupId, record {} meta) re
     if meta.hasKey(CONSUMER_GROUP) {
         return value:ensureType(meta[CONSUMER_GROUP]);
     }
-    return defaultGroupId;
+    return string `consumer-${defaultGroupId}`;
 }
 
 isolated function resolveTopicPartitions(record {} meta) returns int[]|error? {

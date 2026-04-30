@@ -40,6 +40,16 @@ gracefulClosePeriod = 5.0
 # auth.username = "admin"
 # auth.password = "admin"
 
+# [websubhub.config.store.solace.queue]
+# queueNamePrefix = "consumer-"
+# messageQueueQuota = 5000
+# queueOwner = "default"
+# nonOwnerPermission = "no-access"
+# deliveryCountEnabled = true
+# respectTtl = false
+# maxTtl = 0
+# redeliver.maxCount = 10
+
 [websubhub.config.delivery]
 timeout = 60.0
 
