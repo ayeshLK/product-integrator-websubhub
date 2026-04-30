@@ -52,4 +52,16 @@ statusCodes = [500, 502, 503]
 resetOnExhaust = false
 
 [ballerina.log]
-level = "INFO"
+level = "DEBUG"
+
+[ballerina.observe]
+tracingEnabled=true
+tracingProvider="jaeger"
+
+[ballerinax.jaeger]
+agentHostname="localhost"
+agentPort=4317
+samplerType="const"
+samplerParam=1.0
+reporterFlushInterval=2000
+reporterBufferSize=1000
