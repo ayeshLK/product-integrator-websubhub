@@ -29,11 +29,25 @@ type SolaceQueueExists distinct error;
 
 type SolaceEntityExists distinct error;
 
+type SolaceQueuePermission "no-access"|"read-only"|"consume"|"modify-topic"|"delete";
+
+const string META_QUEUE_NAME = "solace.queue_name";
+const string META_DLQ_NAME = "solace.dlq_name";
+const string META_MAX_MSG_SPOOL = "solace.max_msg_spool";
+const string META_NON_OWNER_PERMISSION = "solace.non_owner_permission";
+const string META_DELIVERY_COUNT_ENABLED = "solace.delivery_count_enabled";
+const string META_RESPECT_TTL = "solace.respect_ttl";
+const string META_MAX_TTL = "solace.max_ttl";
+const string META_REDELIVERY_ENABLED = "solace.redelivery_enabled";
+const string META_REDELIVERY_TRY_FOREVER = "solace.redelivery_try_forever";
+const string META_REDELIVERY_MAX_COUNT = "solace.redelivery_max_count";
+
 public isolated client class Administrator {
     *api:Administrator;
 
     private final semp:Client administrator;
     private final string messageVpn;
+    private final readonly & SolaceQueueConfig? queueConfig;
 
     public isolated function init(Config config) returns error? {
         self.administrator = check new (
@@ -46,36 +60,40 @@ public isolated client class Administrator {
             }
         );
         self.messageVpn = config.messageVpn;
+        self.queueConfig = config.queue.cloneReadOnly();
     }
 
-    isolated remote function createTopic(string topic, record {} meta = {}) returns api:TopicExists|error? {
+    isolated remote function createTopic(string topic, boolean systemTopic = false, record {} meta = {}) returns api:TopicExists|error? {
         return;
     }
 
-    isolated remote function deleteTopic(string topic, record {} meta = {}) returns api:TopicNotFound|error? {
+    isolated remote function deleteTopic(string topic, boolean systemTopic = false, record {} meta = {}) returns api:TopicNotFound|error? {
         return;
     }
 
-    isolated remote function createSubscription(string topic, string queueName, record {} meta = {}) returns api:SubscriptionExists|error? {
-        log:printWarn("Creating topic subscription for ", topic = topic, queue = queueName, meta = meta);
-        semp:MsgVpnQueue|error queue = self.retrieveQueue(queueName);
+    isolated remote function createSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionExists|error? {
+        string effectiveQueueName = systemSubscriber ? queueName : resolveQueueName(self.queueConfig, queueName, meta);
+        string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
+        log:printWarn("Creating topic subscription for ", topic = topic, queue = effectiveQueueName, dlq = effectiveDlqName);
+        semp:MsgVpnQueue|error queue = self.retrieveQueue(effectiveQueueName);
         if queue is SolaceQueueNotFound {
-            string dlqName = string `dlq-${queueName}`;
-            semp:MsgVpnQueue|error dlq = self.retrieveQueue(dlqName);
+            semp:MsgVpnQueue|error dlq = self.retrieveQueue(effectiveDlqName);
             if dlq is SolaceQueueNotFound {
-                _ = check self.createQueue(dlqName);
+                _ = check self.createQueue(effectiveDlqName, (), self.queueConfig, meta);
             } else if dlq is error {
                 return dlq;
             }
-            _ = check self.createQueue(queueName, dlqName);
+            _ = check self.createQueue(effectiveQueueName, effectiveDlqName, self.queueConfig, meta);
         } else if queue is error {
             return queue;
         }
-        _ = check self.addTopicSubscription(queueName, topic);
+        _ = check self.addTopicSubscription(effectiveQueueName, topic);
     }
 
-    isolated remote function deleteSubscription(string topic, string queueName, record {} meta = {}) returns api:SubscriptionNotFound|error? {
-        semp:MsgVpnQueueSubscription[]? subscriptions = check self.retrieveTopicSubscriptions(queueName);
+    isolated remote function deleteSubscription(string topic, string queueName, boolean systemSubscriber = false, record {} meta = {}) returns api:SubscriptionNotFound|error? {
+        string effectiveQueueName = systemSubscriber ? queueName : resolveQueueName(self.queueConfig, queueName, meta);
+        string effectiveDlqName = resolveDlqName(effectiveQueueName, meta);
+        semp:MsgVpnQueueSubscription[]? subscriptions = check self.retrieveTopicSubscriptions(effectiveQueueName);
         if subscriptions is () {
             return;
         }
@@ -86,12 +104,11 @@ public isolated client class Administrator {
             return;
         }
 
-        _ = check self.removeTopicSubscription(queueName, topic);
+        _ = check self.removeTopicSubscription(effectiveQueueName, topic);
 
         if subscriptions.length() === 1 {
-            string dlqName = string `dlq-${queueName}`;
-            check self.deleteQueue(queueName);
-            check self.deleteQueue(dlqName);
+            check self.deleteQueue(effectiveQueueName);
+            check self.deleteQueue(effectiveDlqName);
         }
     }
 
@@ -123,16 +140,10 @@ public isolated client class Administrator {
         return response;
     }
 
-    isolated function createQueue(string queueName, string? dlq = ()) returns semp:MsgVpnQueue|error {
+    isolated function createQueue(string queueName, string? dlqName = (), SolaceQueueConfig? queueConfig = (), record {} meta = {}) returns semp:MsgVpnQueue|error {
         string vpn = self.messageVpn;
-        semp:MsgVpnQueueResponse|error response = self.administrator->createMsgVpnQueue(msgVpnName = vpn, payload = {
-            queueName,
-            deadMsgQueue: dlq,
-            accessType: "non-exclusive",
-            permission: "delete",
-            ingressEnabled: true,
-            egressEnabled: true
-        });
+        semp:MsgVpnQueue queuePayload = check buildQueuePayload(queueName, dlqName, queueConfig, meta);
+        semp:MsgVpnQueueResponse|error response = self.administrator->createMsgVpnQueue(msgVpnName = vpn, payload = queuePayload);
         if response is semp:MsgVpnQueueResponse {
             if response.data is semp:MsgVpnQueue {
                 return <semp:MsgVpnQueue>response.data;
@@ -273,4 +284,142 @@ public isolated client class Administrator {
     isolated remote function close() returns error? {
         return;
     }
+}
+
+isolated function resolveQueueName(SolaceQueueConfig? queueConfig, string queueId, record {} meta) returns string {
+    anydata val = meta[META_QUEUE_NAME];
+    if val is string {
+        return val;
+    }
+    string? queueNamePrefix = queueConfig?.queueNamePrefix;
+    if queueNamePrefix is string {
+        return string `${queueNamePrefix}${queueId}`;
+    }
+    return string `consumer-${queueId}`;
+}
+
+isolated function resolveDlqName(string queueName, record {} meta) returns string {
+    anydata val = meta[META_DLQ_NAME];
+    if val is string {
+        return val;
+    }
+    return string `dlq-${queueName}`;
+}
+
+isolated function buildQueuePayload(string queueName, string? dlqName, SolaceQueueConfig? queueConfig, record {} meta) returns semp:MsgVpnQueue|error {
+    semp:MsgVpnQueue payload = {
+        queueName,
+        accessType: "non-exclusive",
+        ingressEnabled: true,
+        egressEnabled: true
+    };
+
+    if dlqName is string {
+        payload.deadMsgQueue = dlqName;
+    }
+
+    if queueConfig is SolaceQueueConfig {
+        payload.owner = queueConfig.queueOwner;
+        payload.maxMsgSpoolUsage = queueConfig.messageQueueQuota;
+        payload.deliveryCountEnabled = queueConfig.deliveryCountEnabled;
+        payload.respectTtlEnabled = queueConfig.respectTtl;
+        payload.maxTtl = queueConfig.maxTtl;
+        payload.permission = check queueConfig.nonOwnerPermission.cloneWithType(SolaceQueuePermission);
+
+        var redeliver = queueConfig.redeliver;
+        if redeliver is record {|int maxCount;|} {
+            payload.redeliveryEnabled = true;
+            payload.maxRedeliveryCount = redeliver.maxCount;
+        } else if redeliver is record {|boolean tryForever;|} && redeliver.tryForever {
+            payload.redeliveryEnabled = true;
+            payload.maxRedeliveryCount = 0;
+        }
+    }
+
+    anydata spoolVal = meta[META_MAX_MSG_SPOOL];
+    if spoolVal is int {
+        payload.maxMsgSpoolUsage = spoolVal;
+    } else if spoolVal is string {
+        int|error parsed = int:fromString(spoolVal);
+        if parsed is int {
+            payload.maxMsgSpoolUsage = parsed;
+        }
+    }
+
+    anydata permVal = meta[META_NON_OWNER_PERMISSION];
+    if permVal is string {
+        SolaceQueuePermission|error perm = permVal.cloneWithType(SolaceQueuePermission);
+        if perm is SolaceQueuePermission {
+            payload.permission = perm;
+        }
+    }
+
+    anydata dcVal = meta[META_DELIVERY_COUNT_ENABLED];
+    if dcVal is boolean {
+        payload.deliveryCountEnabled = dcVal;
+    } else if dcVal is string {
+        if dcVal == "true" || dcVal == "false" {
+            payload.deliveryCountEnabled = dcVal == "true";
+        } else {
+            return error(string `invalid meta value for '${META_DELIVERY_COUNT_ENABLED}': "${dcVal}", expected boolean or "true"/"false"`);
+        }
+    } else if dcVal !is () {
+        return error(string `invalid meta value for '${META_DELIVERY_COUNT_ENABLED}': expected boolean or string`);
+    }
+
+    anydata ttlVal = meta[META_RESPECT_TTL];
+    if ttlVal is boolean {
+        payload.respectTtlEnabled = ttlVal;
+    } else if ttlVal is string {
+        if ttlVal == "true" || ttlVal == "false" {
+            payload.respectTtlEnabled = ttlVal == "true";
+        } else {
+            return error(string `invalid meta value for '${META_RESPECT_TTL}': "${ttlVal}", expected boolean or "true"/"false"`);
+        }
+    } else if ttlVal !is () {
+        return error(string `invalid meta value for '${META_RESPECT_TTL}': expected boolean or string`);
+    }
+
+    anydata maxTtlVal = meta[META_MAX_TTL];
+    if maxTtlVal is int {
+        payload.maxTtl = maxTtlVal;
+    } else if maxTtlVal is string {
+        int|error parsed = int:fromString(maxTtlVal);
+        if parsed is int {
+            payload.maxTtl = parsed;
+        }
+    }
+
+    anydata redeliveryVal = meta[META_REDELIVERY_ENABLED];
+    if redeliveryVal is boolean {
+        payload.redeliveryEnabled = redeliveryVal;
+    } else if redeliveryVal is string {
+        if redeliveryVal == "true" || redeliveryVal == "false" {
+            payload.redeliveryEnabled = redeliveryVal == "true";
+        } else {
+            return error(string `invalid meta value for '${META_REDELIVERY_ENABLED}': "${redeliveryVal}", expected boolean or "true"/"false"`);
+        }
+    } else if redeliveryVal !is () {
+        return error(string `invalid meta value for '${META_REDELIVERY_ENABLED}': expected boolean or string`);
+    }
+
+    anydata maxCountVal = meta[META_REDELIVERY_MAX_COUNT];
+    if maxCountVal is int {
+        payload.redeliveryEnabled = true;
+        payload.maxRedeliveryCount = maxCountVal;
+    } else if maxCountVal is string {
+        int|error parsed = int:fromString(maxCountVal);
+        if parsed is int {
+            payload.redeliveryEnabled = true;
+            payload.maxRedeliveryCount = parsed;
+        }
+    }
+
+    anydata tryForeverVal = meta[META_REDELIVERY_TRY_FOREVER];
+    if (tryForeverVal is boolean && tryForeverVal) || tryForeverVal == "true" {
+        payload.redeliveryEnabled = true;
+        payload.maxRedeliveryCount = 0;
+    }
+
+    return payload;
 }

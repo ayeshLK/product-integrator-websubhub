@@ -32,7 +32,7 @@ isolated function init() returns error? {
 
 isolated function createStateSnapshotSubscription() returns error? {
     var {topic, consumerId} = config:state.snapshot;
-    error? result = administrator->createSubscription(topic, consumerId);
+    error? result = administrator->createSubscription(topic, consumerId, true);
     if result is storeapi:SubscriptionExists {
         log:printWarn(string `Subscription for Topic [${topic}] and Subscriber [${consumerId}] exists`);
         return;
@@ -42,7 +42,7 @@ isolated function createStateSnapshotSubscription() returns error? {
 
 isolated function createStateEventsSubscription() returns error? {
     var {topic, consumerId} = config:state.events;
-    error? result = administrator->createSubscription(topic, consumerId);
+    error? result = administrator->createSubscription(topic, consumerId, true);
     if result is storeapi:SubscriptionExists {
         log:printWarn(string `Subscription for Topic [${topic}] and Subscriber [${consumerId}] exists`);
         return;

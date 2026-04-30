@@ -28,7 +28,7 @@ import wso2/messagestore.api as storeapi;
 final storeapi:Administrator administrator = check store:createAdministrator(config:store);
 
 public isolated function createWebSubEventsSubscription(string topic, string consumerId) returns error? {
-    error? result = administrator->createSubscription(topic, consumerId);
+    error? result = administrator->createSubscription(topic, consumerId, true);
     if result is storeapi:SubscriptionExists {
         log:printWarn(string `Subscription for Topic [${topic}] and Subscriber [${consumerId}] exists`);
         return;
@@ -39,7 +39,7 @@ public isolated function createWebSubEventsSubscription(string topic, string con
 public isolated function createTopic(websubhub:TopicRegistration topicRegistration)
     returns websubhub:TopicRegistrationError|error? {
 
-    error? result = administrator->createTopic(topicRegistration.topic, topicRegistration);
+    error? result = administrator->createTopic(topicRegistration.topic, false, topicRegistration);
     if result is storeapi:TopicExists {
         string errorMessage = string `Topic ${topicRegistration.topic} already exists in the message store, deregister the topic first.`;
         return error websubhub:TopicRegistrationError(errorMessage, statusCode = http:STATUS_CONFLICT);
@@ -50,7 +50,7 @@ public isolated function createTopic(websubhub:TopicRegistration topicRegistrati
 public isolated function deleteTopic(websubhub:TopicDeregistration topicDeregistration)
     returns websubhub:TopicDeregistrationError|error? {
 
-    error? result = administrator->deleteTopic(topicDeregistration.topic, topicDeregistration);
+    error? result = administrator->deleteTopic(topicDeregistration.topic, false, topicDeregistration);
     if result is storeapi:TopicNotFound {
         string errorMessage = string `Topic ${topicDeregistration.topic} could not be found in the message store.`;
         return error websubhub:TopicDeregistrationError(errorMessage, statusCode = http:STATUS_NOT_FOUND);
@@ -63,8 +63,8 @@ public isolated function createSubscription(websubhub:VerifiedSubscription subsc
 
     string topic = subscription.hubTopic;
     string timestamp = check value:ensureType(subscription[common:SUBSCRIPTION_TIMESTAMP]);
-    string consumerName = constructConsumerName(topic, subscription.hubCallback, timestamp);
-    error? result = administrator->createSubscription(topic, consumerName, subscription);
+    string consumerName = constructConsumerId(topic, subscription.hubCallback, timestamp);
+    error? result = administrator->createSubscription(topic, consumerName, false, subscription);
     if result is storeapi:SubscriptionExists {
         string errorMessage = string `
             Subscription for topic ${topic} and callback ${subscription.hubCallback} with consumer-name ${consumerName} already exists in the message store.`;
@@ -73,26 +73,26 @@ public isolated function createSubscription(websubhub:VerifiedSubscription subsc
     return result;
 }
 
-public isolated function deleteSubscription(websubhub:VerifiedUnsubscription unsubscription)
+public isolated function deleteSubscription(websubhub:VerifiedSubscription subscription)
     returns websubhub:InternalUnsubscriptionError|error? {
 
-    string topic = unsubscription.hubTopic;
-    string timestamp = check value:ensureType(unsubscription[common:SUBSCRIPTION_TIMESTAMP]);
-    string consumerName = constructConsumerName(topic, unsubscription.hubCallback, timestamp);
-    error? result = administrator->deleteSubscription(topic, consumerName, unsubscription);
+    string topic = subscription.hubTopic;
+    string timestamp = check value:ensureType(subscription[common:SUBSCRIPTION_TIMESTAMP]);
+    string consumerName = constructConsumerId(topic, subscription.hubCallback, timestamp);
+    error? result = administrator->deleteSubscription(topic, consumerName, false, subscription);
     if result is storeapi:SubscriptionNotFound {
         string errorMessage = string `
-            Subscription for topic ${topic} and callback ${unsubscription.hubCallback} with consumer-name ${consumerName} can not be found in the message store.`;
+            Subscription for topic ${topic} and callback ${subscription.hubCallback} with consumer-name ${consumerName} can not be found in the message store.`;
         return error websubhub:InternalUnsubscriptionError(errorMessage, statusCode = http:STATUS_NOT_FOUND);
     }
     return result;
 }
 
-isolated function constructConsumerName(string topic, string hubCallback, string timestamp) returns string {
+isolated function constructConsumerId(string topic, string hubCallback, string timestamp) returns string {
     string subscriberId = string `${topic}___${hubCallback}___${timestamp}`;
     int constructedId = 0;
     foreach var [idx, val] in subscriberId.toCodePointInts().enumerate() {
         constructedId += (idx + 1) * val;
     }
-    return string `consumer-${constructedId}`;
+    return string `${constructedId}`;
 }

@@ -37,5 +37,14 @@ offsetReset = "earliest"
 # auth.username = "admin"
 # auth.password = "admin"
 
+# [websubhub.consolidator.config.store.solace.queue]
+# messageQueueQuota = 5000
+# queueOwner = "default"
+# nonOwnerPermission = "no-access"
+# deliveryCountEnabled = true
+# respectTtl = false
+# maxTtl = 0
+# redeliver.maxCount = 10
+
 [ballerina.log]
 level = "INFO"

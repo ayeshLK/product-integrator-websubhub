@@ -85,12 +85,13 @@ isolated client class Consumer {
 # Initialize a consumer for JMS message store.
 #
 # + topic - The JMS topic to which the consumer should received events for
-# + subscriberName - The JMS durable subscriber to which the messages should be received
+# + defaultSubscriberId - The JMS durable subscriber Id to which the messages should be received
 # + config - The JMS connection configurations
+# + systemConsumer - Flag to indicate whether this is a system consumer
 # + meta - The meta data required to resolve the consumer configurations
 # + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-public isolated function createConsumer(string topic, string subscriberName, Config config,
-        record {} meta = {}) returns api:Consumer|error {
+public isolated function createConsumer(string topic, string defaultSubscriberId, Config config,
+        boolean systemConsumer = false, record {} meta = {}) returns api:Consumer|error {
     jms:ConnectionConfiguration connectionConfig = {
         initialContextFactory: config.initialContextFactory,
         providerUrl: config.providerUrl,
@@ -105,5 +106,6 @@ public isolated function createConsumer(string topic, string subscriberName, Con
     if dlqTopic is string {
         check initJmsDlqProducer(config);
     }
+    string subscriberName = systemConsumer ? defaultSubscriberId : string `consumer-${defaultSubscriberId}`;
     return new Consumer(session, config.consumer, topic, subscriberName);
 }
