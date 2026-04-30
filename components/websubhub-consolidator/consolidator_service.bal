@@ -23,7 +23,7 @@ import ballerina/lang.value;
 import ballerina/log;
 import ballerina/websubhub;
 
-import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
 http:Service consolidatorService = service object {
     isolated resource function get state\-snapshot() returns common:SystemStateSnapshot {
@@ -39,7 +39,7 @@ http:Service consolidatorService = service object {
 isolated function consolidateSystemState() returns error? {
     do {
         while true {
-            store:Message? message = check conn:websubEventsConsumer->receive();
+            storeapi:Message? message = check conn:websubEventsConsumer->receive();
             if message is () {
                 continue;
             }

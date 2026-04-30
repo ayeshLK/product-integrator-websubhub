@@ -26,8 +26,15 @@ import ballerina/lang.value;
 import ballerina/log;
 
 import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
 public function main() returns error? {
+    error? validation = store:validateConfig(config:store);
+    if validation is error {
+        common:logFatalError("Message store configuration validation failed", validation);
+        return;
+    }
+
     // Initialize consolidator-service state
     error? stateSyncResult = syncSystemState();
     if stateSyncResult is error {
@@ -54,11 +61,11 @@ public function main() returns error? {
 }
 
 isolated function syncSystemState() returns error? {
-    store:Consumer websubEventsSnapshotConsumer = check conn:initWebSubEventSnapshotConsumer();
+    storeapi:Consumer websubEventsSnapshotConsumer = check conn:initWebSubEventSnapshotConsumer();
     do {
-        store:Message? lastMessage = ();
+        storeapi:Message? lastMessage = ();
         while true {
-            store:Message? message = check websubEventsSnapshotConsumer->receive();
+            storeapi:Message? message = check websubEventsSnapshotConsumer->receive();
             if message is () {
                 check websubEventsSnapshotConsumer->close();
                 break;

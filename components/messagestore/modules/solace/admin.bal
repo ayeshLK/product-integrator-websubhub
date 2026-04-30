@@ -1,4 +1,4 @@
-// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.org).
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -14,113 +14,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/crypto;
+import messagestore.api;
+
 import ballerina/http;
 import ballerina/log;
-import ballerina/os;
 
-import xlibb/solace;
 import xlibb/solace.semp;
-
-isolated client class SolaceProducer {
-    *Producer;
-
-    private final solace:MessageProducer producer;
-
-    isolated function init(string clientName, SolaceConfig config) returns error? {
-
-        solace:ProducerConfiguration producerConfig = {
-            clientName,
-            vpnName: config.messageVpn,
-            connectionTimeout: config.connectionTimeout,
-            readTimeout: config.readTimeout,
-            secureSocket: extractSolaceSecureSocketConfig(config.secureSocket),
-            auth: config.auth,
-            retryConfig: config.retryConfig
-        };
-        self.producer = check new (config.url, producerConfig);
-    }
-
-    isolated remote function send(string topic, Message message) returns error? {
-        // todo: Setting properties will throw an error, hence ignoring setting properties for now
-        check self.producer->send(
-            {topicName: topic},
-            {
-            applicationMessageId: message.id,
-            payload: message.payload
-        }
-        );
-    }
-
-    isolated remote function close() returns error? {
-        return self.producer->close();
-    }
-}
-
-const string ORIGINAL_SOLACE_MSG = "originalMessage";
-
-isolated client class SolaceConsumer {
-    *Consumer;
-
-    private final solace:MessageConsumer consumer;
-    private final readonly & SolaceConsumerConfig config;
-
-    isolated function init(SolaceConfig config, string queueName) returns error? {
-
-        solace:ConsumerConfiguration consumerConfig = {
-            vpnName: config.messageVpn,
-            connectionTimeout: config.connectionTimeout,
-            readTimeout: config.readTimeout,
-            secureSocket: extractSolaceSecureSocketConfig(config.secureSocket),
-            auth: config.auth,
-            retryConfig: config.retryConfig,
-            subscriptionConfig: {
-                queueName,
-                ackMode: solace:CLIENT_ACK
-            }
-        };
-        self.consumer = check new (config.url, consumerConfig);
-        self.config = config.consumer.cloneReadOnly();
-    }
-
-    isolated remote function receive() returns Message|error? {
-        solace:Message? receivedMsg = check self.consumer->receive(self.config.receiveTimeout);
-        if receivedMsg is () {
-            return;
-        }
-        Message message = {
-            id: receivedMsg.applicationMessageId,
-            payload: receivedMsg.payload
-        };
-        message[ORIGINAL_SOLACE_MSG] = receivedMsg;
-        return message;
-    }
-
-    isolated remote function ack(Message message) returns error? {
-        if message.hasKey(ORIGINAL_SOLACE_MSG) {
-            solace:Message original = check message.get(ORIGINAL_SOLACE_MSG).ensureType();
-            return self.consumer->ack(original);
-        }
-    }
-
-    isolated remote function nack(Message message) returns error? {
-        if message.hasKey(ORIGINAL_SOLACE_MSG) {
-            solace:Message original = check message.get(ORIGINAL_SOLACE_MSG).ensureType();
-            return self.consumer->nack(original);
-        }
-    }
-
-    isolated remote function deadLetter(Message message) returns error? {
-        if message.hasKey(ORIGINAL_SOLACE_MSG) {
-            solace:Message original = check message.get(ORIGINAL_SOLACE_MSG).ensureType();
-            return self.consumer->nack(original, false);
-        }
-    }
-
-    isolated remote function close(ClosureIntent intent = TEMPORARY) returns error? {
-        return self.consumer->close();
-    }
-}
 
 type SolaceQueueNotFound distinct error;
 
@@ -130,13 +29,13 @@ type SolaceQueueExists distinct error;
 
 type SolaceEntityExists distinct error;
 
-isolated client class SolaceAdministrator {
-    *Administrator;
+public isolated client class Administrator {
+    *api:Administrator;
 
     private final semp:Client administrator;
     private final string messageVpn;
 
-    isolated function init(SolaceConfig config) returns error? {
+    public isolated function init(Config config) returns error? {
         self.administrator = check new (
             serviceUrl = config.admin.url,
             config = {
@@ -149,15 +48,15 @@ isolated client class SolaceAdministrator {
         self.messageVpn = config.messageVpn;
     }
 
-    isolated remote function createTopic(string topic, record {} meta = {}) returns TopicExists|error? {
+    isolated remote function createTopic(string topic, record {} meta = {}) returns api:TopicExists|error? {
         return;
     }
 
-    isolated remote function deleteTopic(string topic, record {} meta = {}) returns TopicNotFound|error? {
+    isolated remote function deleteTopic(string topic, record {} meta = {}) returns api:TopicNotFound|error? {
         return;
     }
 
-    isolated remote function createSubscription(string topic, string queueName, record {} meta = {}) returns SubscriptionExists|error? {
+    isolated remote function createSubscription(string topic, string queueName, record {} meta = {}) returns api:SubscriptionExists|error? {
         log:printWarn("Creating topic subscription for ", topic = topic, queue = queueName, meta = meta);
         semp:MsgVpnQueue|error queue = self.retrieveQueue(queueName);
         if queue is SolaceQueueNotFound {
@@ -175,7 +74,7 @@ isolated client class SolaceAdministrator {
         _ = check self.addTopicSubscription(queueName, topic);
     }
 
-    isolated remote function deleteSubscription(string topic, string queueName, record {} meta = {}) returns SubscriptionNotFound|error? {
+    isolated remote function deleteSubscription(string topic, string queueName, record {} meta = {}) returns api:SubscriptionNotFound|error? {
         semp:MsgVpnQueueSubscription[]? subscriptions = check self.retrieveTopicSubscriptions(queueName);
         if subscriptions is () {
             return;
@@ -284,7 +183,7 @@ isolated client class SolaceAdministrator {
                 return error(string `Could not find either the queue [${queueName}] or the vpn [${vpn}]`);
             }
             if "ALREADY_EXISTS" === payload.meta.'error?.status {
-                return error SubscriptionExists(string `Topic subscription [${subscriptionTopic}] already existst for queue [${queueName}] in vpn [${vpn}]`);
+                return error api:SubscriptionExists(string `Topic subscription [${subscriptionTopic}] already existst for queue [${queueName}] in vpn [${vpn}]`);
             }
             return response;
         }
@@ -374,134 +273,4 @@ isolated client class SolaceAdministrator {
     isolated remote function close() returns error? {
         return;
     }
-}
-
-isolated function extractSolaceSecureSocketConfig(solace:SecureSocket? config) returns solace:SecureSocket? {
-    solace:KeyStore? extractedKeyStore = extractSolaceKeystoreConfig(config?.keyStore);
-    solace:TrustStore? extractedTrustStore = extractSolaceTruststoreConfig(config?.trustStore);
-
-    if config is solace:SecureSocket {
-        var {keyStore, trustStore, ...conf} = config;
-        return {
-            keyStore: extractedKeyStore,
-            trustStore: extractedTrustStore,
-            ...conf
-        };
-    }
-
-    if extractedKeyStore is () && extractedTrustStore is () {
-        return;
-    }
-
-    return {
-        keyStore: extractedKeyStore,
-        trustStore: extractedTrustStore
-    };
-}
-
-isolated function extractSolaceKeystoreConfig(solace:KeyStore? config) returns solace:KeyStore? {
-    boolean mTlsEnabled = os:getEnv("ENABLE_MSGSTORE_MTLS") == "true";
-    if !mTlsEnabled {
-        log:printDebug("[Solace MessageStore] Ignoring keystore configurations as mTLS is disabled for Solace");
-        return;
-    }
-
-    var keystore = getSecureStoreFromEnv(KEYSTORE_PATH, KEYSTORE_PASSWORD);
-    if keystore !is () {
-        return {
-            location: keystore.path,
-            password: keystore.password
-        };
-    }
-    log:printDebug("[Solace MessageStore] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
-    return config;
-}
-
-isolated function extractSolaceTruststoreConfig(solace:TrustStore? config) returns solace:TrustStore? {
-    var truststore = getSecureStoreFromEnv(TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD);
-    if truststore !is () {
-        return {
-            location: truststore.path,
-            password: truststore.password
-        };
-    }
-    log:printDebug("[Solace MessageStore] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
-    return config;
-}
-
-isolated function extractSolaceAdminSecureSocketConfig(http:ClientSecureSocket? config) returns http:ClientSecureSocket? {
-    crypto:KeyStore|http:CertKey? extractedKeyStore = extractSolaceAdminKeystoreConfig(config?.'key);
-    crypto:TrustStore|string? extractedTrustStore = extractSolaceAdminTruststoreConfig(config?.'cert);
-
-    if config is http:ClientSecureSocket {
-        var {'key, cert, ...conf} = config;
-        return {
-            'key: extractedKeyStore,
-            'cert: extractedTrustStore,
-            ...conf
-        };
-    }
-
-    if extractedKeyStore is () && extractedTrustStore is () {
-        return;
-    }
-
-    return {
-        'key: extractedKeyStore,
-        'cert: extractedTrustStore
-    };
-}
-
-isolated function extractSolaceAdminKeystoreConfig(crypto:KeyStore|http:CertKey? 'key) returns crypto:KeyStore|http:CertKey? {
-    boolean mTlsEnabled = os:getEnv("ENABLE_MSGSTORE_MTLS") == "true";
-    if !mTlsEnabled {
-        log:printDebug("[Solace MessageStore Admin] Ignoring keystore configurations as mTLS is disabled for Solace");
-        return;
-    }
-
-    var keystore = getSecureStoreFromEnv(KEYSTORE_PATH, KEYSTORE_PASSWORD);
-    if keystore !is () {
-        return {
-            path: keystore.path,
-            password: keystore.password
-        };
-    }
-    log:printDebug("[Solace MessageStore Admin] Ignoring keystore env override: both WEBSUBHUB_KEYSTORE_PATH and WEBSUBHUB_KEYSTORE_PASSWORD must be set");
-    return 'key;
-}
-
-isolated function extractSolaceAdminTruststoreConfig(crypto:TrustStore|string? 'cert) returns crypto:TrustStore|string? {
-    var truststore = getSecureStoreFromEnv(TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD);
-    if truststore !is () {
-        return {
-            path: truststore.path,
-            password: truststore.password
-        };
-    }
-    log:printDebug("[Solace MessageStore Admin] Ignoring truststore env override: both WEBSUBHUB_TRUSTSTORE_PATH and WEBSUBHUB_TRUSTSTORE_PASSWORD must be set");
-    return 'cert;
-}
-
-const KEYSTORE_PATH = "WEBSUBHUB_KEYSTORE_PATH";
-const KEYSTORE_PASSWORD = "WEBSUBHUB_KEYSTORE_PASSWORD";
-const TRUSTSTORE_PATH = "WEBSUBHUB_TRUSTSTORE_PATH";
-const TRUSTSTORE_PASSWORD = "WEBSUBHUB_TRUSTSTORE_PASSWORD";
-
-isolated function getSecureStoreFromEnv(string storePathKey, string storePasswordKey) returns record {|string path; string password;|}? {
-    string path = os:getEnv(storePathKey);
-    string password = os:getEnv(storePasswordKey);
-    if path == "" || password == "" {
-        return;
-    }
-    return {path, password};
-}
-
-# Initialize a consumer for Solace message store.
-#
-# + config - The Solace connection configurations
-# + queueName - The queue from which the consumer is receiving messages
-# + meta - The meta data required to resolve the consumer configurations
-# + return - A `store:Consumer` for Kafka message store, or else return an `error` if the operation fails
-isolated function createSolaceConsumer(string queueName, SolaceConfig config, record {} meta = {}) returns Consumer|error {
-    return new SolaceConsumer(config, queueName);
 }

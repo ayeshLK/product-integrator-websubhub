@@ -1,4 +1,4 @@
-// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.org).
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -14,15 +14,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import websubhub.consolidator.common;
+import messagestore.api;
 
-import wso2/messagestore as store;
+# Dead Letter Queue message publisher used in Kafka message store
+isolated api:Producer? dlqProducer = ();
 
-# Common configurations used to configure the websubhub consolidator server
-public configurable common:ServerConfig server = ?;
-
-# Configurations related to websubhub consolidator server state
-public configurable common:ServerStateConfig state = ?;
-
-# Messaging store connection related configurations
-public configurable store:Config store = ?;
+isolated function initKafkaDlqProducer(Config config) returns error? {
+    lock {
+        if dlqProducer is Producer {
+            return;
+        }
+        dlqProducer = check new Producer("dlq-message-producer", config.cloneReadOnly());
+    }
+}

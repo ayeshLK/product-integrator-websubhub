@@ -18,9 +18,9 @@ import websubhub.consolidator.common;
 import websubhub.consolidator.config;
 import websubhub.consolidator.connections as conn;
 
-import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
-public isolated function saveLastSnapshotMessage(store:Message message) returns error? {
+public isolated function saveLastSnapshotMessage(storeapi:Message message) returns error? {
     return produceMessage(config:state.snapshot.topic, message);
 }
 
@@ -30,6 +30,6 @@ public isolated function saveWebsubEventsSnapshot(common:SystemStateSnapshot sys
     return produceMessage(config:state.snapshot.topic, {payload});
 }
 
-isolated function produceMessage(string topic, store:Message message) returns error? {
+isolated function produceMessage(string topic, storeapi:Message message) returns error? {
     return (check conn:getMessageProducer(topic))->send(topic, message);
 }

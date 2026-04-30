@@ -1,4 +1,4 @@
-// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.org).
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -13,9 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
-import ballerina/lang.value;
-import ballerina/log;
 
 # Represents a message published to a message store.
 public type Message record {
@@ -165,39 +162,4 @@ public isolated client class Administrator {
     isolated remote function close() returns error? {
         return;
     }
-}
-
-# The field name that can be found in the meta-information provided during consumer creation for deal-letter configurations.
-const string DLQ_TOPIC = "dlqTopic";
-
-# Dead Letter Queue message publisher commonly used for all the message store types
-isolated Producer? dlqProducer = ();
-
-# Common messagestore utility to publish messages to a DLQ
-#
-# + dlq - The dead-letter destination
-# + message - The message to be pushed to the DLQ
-# + return - An `error` if the operation fails
-isolated function publishToDlq(string? dlq, Message message) returns error? {
-    if dlq is () {
-        log:printWarn("Dead-Letter configurations are disabled, hence ignoring the message and continue");
-        return;
-    }
-    Producer? _dlqProducer;
-    lock {
-        _dlqProducer = dlqProducer;
-    }
-    if _dlqProducer is () {
-        log:printWarn("Could not find the DLQ producer, hence ignoring the message and continue");
-        return;
-    }
-    check _dlqProducer->send(dlq, message);
-}
-
-isolated function resolveDeadLetterTopic(string? systemDlqTopic, record {} meta) returns string|error? {
-    // Subscriber-level DLQ topic takes priority over the system-level configuration
-    if meta.hasKey(DLQ_TOPIC) {
-        return value:ensureType(meta[DLQ_TOPIC]);
-    }
-    return systemDlqTopic;
 }

@@ -19,8 +19,9 @@ import websubhub.consolidator.config;
 import ballerina/log;
 
 import wso2/messagestore as store;
+import wso2/messagestore.api as storeapi;
 
-final store:Administrator administrator = check store:createAdministrator(config:store);
+final storeapi:Administrator administrator = check store:createAdministrator(config:store);
 
 isolated function init() returns error? {
     // Create topic and subscription for state snapshot consumer
@@ -32,7 +33,7 @@ isolated function init() returns error? {
 isolated function createStateSnapshotSubscription() returns error? {
     var {topic, consumerId} = config:state.snapshot;
     error? result = administrator->createSubscription(topic, consumerId);
-    if result is store:SubscriptionExists {
+    if result is storeapi:SubscriptionExists {
         log:printWarn(string `Subscription for Topic [${topic}] and Subscriber [${consumerId}] exists`);
         return;
     }
@@ -42,7 +43,7 @@ isolated function createStateSnapshotSubscription() returns error? {
 isolated function createStateEventsSubscription() returns error? {
     var {topic, consumerId} = config:state.events;
     error? result = administrator->createSubscription(topic, consumerId);
-    if result is store:SubscriptionExists {
+    if result is storeapi:SubscriptionExists {
         log:printWarn(string `Subscription for Topic [${topic}] and Subscriber [${consumerId}] exists`);
         return;
     }

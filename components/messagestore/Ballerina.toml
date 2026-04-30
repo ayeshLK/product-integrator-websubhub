@@ -2,7 +2,11 @@
 org = "wso2"
 name = "messagestore"
 version = "1.0.3-SNAPSHOT"
-distribution = "2201.13.1"
+distribution = "2201.13.3"
 
 [build-options]
 observabilityIncluded = true
+
+[[package.modules]]
+name = "messagestore.api"
+export = true

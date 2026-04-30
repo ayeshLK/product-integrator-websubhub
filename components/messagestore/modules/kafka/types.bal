@@ -1,4 +1,4 @@
-// Copyright (c) 2025, WSO2 LLC. (http://www.wso2.org).
+// Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -16,14 +16,8 @@
 
 import ballerinax/kafka;
 
-# Defines the Kafka message store configurations
-public type KafkaMessageStore record {|
-    # Configurations related to Kafka message store connection
-    KafkaConfig kafka;
-|};
-
 # Defines the complete set of Kafka configurations required for the application.
-public type KafkaConfig record {|
+public type Config record {|
     *KafkaConnectionConfig;
     # Kafka producer-specific configurations
     KafkaProducerConfig producer = {};
